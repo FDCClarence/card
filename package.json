@@ -13,6 +13,7 @@
   "scripts": {
     "dev": "concurrently \"npm run dev --workspace client\" \"npm run dev --workspace server\"",
     "build": "npm run build --workspace shared && npm run build --workspace server && npm run build --workspace client",
+    "start": "npm run start --workspace server",
     "lint": "eslint . --config eslint.config.mjs --ext .ts,.tsx,.js,.cjs,.mjs",
     "format": "prettier --write ."
   },
