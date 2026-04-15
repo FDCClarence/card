@@ -8,15 +8,10 @@ import type {
 import express from 'express'
 import { Server } from 'socket.io'
 
-// @ts-expect-error JavaScript route module.
 import authRouter from '../routes/auth.js'
-// @ts-expect-error JavaScript route module.
 import cardsRouter from '../routes/cards.js'
-// @ts-expect-error JavaScript route module.
 import deckRouter from '../routes/deck.js'
-// @ts-expect-error JavaScript route module.
 import userRouter from '../routes/user.js'
-// @ts-expect-error JavaScript socket handler module.
 import { registerLobbyHandlers } from '../sockets/lobby.js'
 
 const PORT = Number(process.env.PORT ?? 3001)

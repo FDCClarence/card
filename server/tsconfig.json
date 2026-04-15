@@ -8,11 +8,12 @@
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
+    "allowJs": true,
     "baseUrl": ".",
     "paths": {
       "@shared/*": ["../shared/*"],
       "@shared": ["../shared/index.ts"]
     }
   },
-  "include": ["src", "../shared/index.ts", "../shared/src"]
+  "include": ["src", "routes", "sockets", "../shared/index.ts", "../shared/src"]
 }
