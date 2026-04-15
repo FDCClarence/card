@@ -9,13 +9,15 @@
     "start": "node dist/server/src/index.js"
   },
   "dependencies": {
+    "@types/express": "^5.0.3",
+    "@types/node": "^24.6.0",
     "bcrypt": "^6.0.0",
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "typescript": "^5.9.3"
   },
   "devDependencies": {
-    "@types/express": "^5.0.3",
     "tsx": "^4.20.6"
   }
 }
