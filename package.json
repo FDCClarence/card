@@ -2,6 +2,9 @@
   "name": "card-monorepo",
   "private": true,
   "version": "1.0.0",
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "workspaces": [
     "client",
     "server",
