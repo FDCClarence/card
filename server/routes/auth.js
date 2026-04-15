@@ -1,20 +1,13 @@
-import { randomUUID } from 'node:crypto'
-
 import bcrypt from 'bcrypt'
 import express from 'express'
 import jwt from 'jsonwebtoken'
+import { query } from '../src/db.js'
 
 const router = express.Router()
 
 const JWT_SECRET = process.env.JWT_SECRET ?? 'dev-only-change-me'
 const JWT_EXPIRES_IN = '7d'
 const SALT_ROUNDS = 10
-
-/**
- * Minimal in-memory user DB for local development.
- * Replace with your real persistence layer later.
- */
-export const usersByEmail = new Map()
 
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
@@ -23,27 +16,30 @@ function isValidEmail(email) {
 function toPublicUser(user) {
   return {
     id: user.id,
-    username: user.username,
+    username: user.email,
     email: user.email,
   }
 }
 
-export function findUserById(userId) {
-  for (const user of usersByEmail.values()) {
-    if (user.id === userId) {
-      return user
-    }
+export async function findUserById(userId) {
+  const numericUserId = Number(userId)
+  if (!Number.isInteger(numericUserId)) return null
+
+  const rows = await query('SELECT id, email, password FROM users WHERE id = ? LIMIT 1', [numericUserId])
+  const user = rows[0]
+  if (!user) return null
+
+  return {
+    id: user.id,
+    email: user.email,
+    passwordHash: user.password,
   }
-  return null
 }
 
 router.post('/register', async (req, res) => {
   try {
-    const { username, email, password } = req.body ?? {}
+    const { email, password } = req.body ?? {}
 
-    if (!username || username.trim().length < 2) {
-      return res.status(400).json({ error: 'Username must be at least 2 characters.' })
-    }
     if (!email || !isValidEmail(email)) {
       return res.status(400).json({ error: 'Please provide a valid email.' })
     }
@@ -52,19 +48,21 @@ router.post('/register', async (req, res) => {
     }
 
     const normalizedEmail = String(email).toLowerCase().trim()
-    if (usersByEmail.has(normalizedEmail)) {
+    const existingUsers = await query('SELECT id FROM users WHERE email = ? LIMIT 1', [normalizedEmail])
+    if (existingUsers.length > 0) {
       return res.status(409).json({ error: 'Email is already registered.' })
     }
 
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS)
+    const result = await query(
+      'INSERT INTO users (email, password, created_at, updated_at) VALUES (?, ?, CURDATE(), CURDATE())',
+      [normalizedEmail, passwordHash],
+    )
     const user = {
-      id: randomUUID(),
-      username: String(username).trim(),
+      id: result.insertId,
       email: normalizedEmail,
       passwordHash,
     }
-
-    usersByEmail.set(normalizedEmail, user)
 
     const token = jwt.sign({ sub: user.id, email: user.email }, JWT_SECRET, {
       expiresIn: JWT_EXPIRES_IN,
@@ -89,7 +87,11 @@ router.post('/login', async (req, res) => {
     }
 
     const normalizedEmail = String(email).toLowerCase().trim()
-    const user = usersByEmail.get(normalizedEmail)
+    const rows = await query('SELECT id, email, password FROM users WHERE email = ? LIMIT 1', [normalizedEmail])
+    const dbUser = rows[0]
+    const user = dbUser
+      ? { id: dbUser.id, email: dbUser.email, passwordHash: dbUser.password }
+      : null
     if (!user) {
       return res.status(401).json({ error: 'Invalid credentials.' })
     }

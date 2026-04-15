@@ -13,6 +13,7 @@ import cardsRouter from '../routes/cards.js'
 import deckRouter from '../routes/deck.js'
 import userRouter from '../routes/user.js'
 import { registerLobbyHandlers } from '../sockets/lobby.js'
+import { checkDbConnection } from './db.js'
 
 const PORT = Number(process.env.PORT ?? 3001)
 
@@ -36,8 +37,13 @@ const lobby: LobbyState = {
   status: 'waiting',
 }
 
-app.get('/health', (_req, res) => {
-  res.json({ ok: true, lobby })
+app.get('/health', async (_req, res) => {
+  try {
+    await checkDbConnection()
+    res.json({ ok: true, db: true, lobby })
+  } catch {
+    res.status(503).json({ ok: false, db: false, lobby })
+  }
 })
 
 io.on('connection', (socket) => {

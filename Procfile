@@ -1,1 +1,1 @@
-web: npm run start --workspace server
+web: node server/dist/server/src/index.js

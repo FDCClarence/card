@@ -1,5 +1,6 @@
 import express from 'express'
 
+import { query } from '../src/db.js'
 import { requireAuth } from './middleware.js'
 
 const router = express.Router()
@@ -7,18 +8,23 @@ const router = express.Router()
 const MAX_TOTAL = 20
 const MAX_COPIES = 2
 
-/**
- * In-memory deck store: userId → { name: string, cardIds: string[] }
- * Replace with a real DB when you add persistence.
- */
-const decksByUserId = new Map()
-
-router.get('/', requireAuth, (req, res) => {
-  const deck = decksByUserId.get(req.userId) ?? null
+router.get('/', requireAuth, async (req, res) => {
+  const rows = await query(
+    'SELECT name, card_ids FROM decks WHERE user_id = ? ORDER BY id DESC LIMIT 1',
+    [Number(req.userId)],
+  )
+  const row = rows[0]
+  const parsedCardIds =
+    row && typeof row.card_ids === 'string'
+      ? JSON.parse(row.card_ids)
+      : Array.isArray(row?.card_ids)
+        ? row.card_ids
+        : []
+  const deck = row ? { name: row.name, cardIds: parsedCardIds } : null
   return res.json({ deck })
 })
 
-router.post('/save', requireAuth, (req, res) => {
+router.post('/save', requireAuth, async (req, res) => {
   const { name, cardIds } = req.body ?? {}
 
   if (!name || String(name).trim().length === 0) {
@@ -41,7 +47,11 @@ router.post('/save', requireAuth, (req, res) => {
   }
 
   const deck = { name: String(name).trim(), cardIds }
-  decksByUserId.set(req.userId, deck)
+  await query('INSERT INTO decks (user_id, name, card_ids, created_at) VALUES (?, ?, ?, CURDATE())', [
+    Number(req.userId),
+    deck.name,
+    JSON.stringify(deck.cardIds),
+  ])
 
   return res.json({ deck })
 })

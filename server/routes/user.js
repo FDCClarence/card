@@ -1,31 +1,37 @@
 import bcrypt from 'bcrypt'
 import express from 'express'
 
-import { findUserById, usersByEmail } from './auth.js'
+import { query } from '../src/db.js'
+import { findUserById } from './auth.js'
 import { requireAuth } from './middleware.js'
 
 const router = express.Router()
 const SALT_ROUNDS = 10
 
-router.patch('/username', requireAuth, (req, res) => {
+router.patch('/username', requireAuth, async (req, res) => {
   const { username } = req.body ?? {}
-  if (!username || String(username).trim().length < 2) {
-    return res.status(400).json({ error: 'Username must be at least 2 characters.' })
+  if (!username || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(username).trim())) {
+    return res.status(400).json({ error: 'Please provide a valid email.' })
   }
 
-  const user = findUserById(req.userId)
+  const user = await findUserById(req.userId)
   if (!user) {
     return res.status(404).json({ error: 'User not found.' })
   }
 
-  user.username = String(username).trim()
-  usersByEmail.set(user.email, user)
+  const nextEmail = String(username).trim().toLowerCase()
+  const duplicate = await query('SELECT id FROM users WHERE email = ? AND id <> ? LIMIT 1', [nextEmail, user.id])
+  if (duplicate.length > 0) {
+    return res.status(409).json({ error: 'Email is already in use.' })
+  }
+
+  await query('UPDATE users SET email = ?, updated_at = CURDATE() WHERE id = ?', [nextEmail, user.id])
 
   return res.json({
     user: {
       id: user.id,
-      username: user.username,
-      email: user.email,
+      username: nextEmail,
+      email: nextEmail,
     },
   })
 })
@@ -39,7 +45,7 @@ router.patch('/password', requireAuth, async (req, res) => {
     return res.status(400).json({ error: 'New password must be at least 8 characters.' })
   }
 
-  const user = findUserById(req.userId)
+  const user = await findUserById(req.userId)
   if (!user) {
     return res.status(404).json({ error: 'User not found.' })
   }
@@ -49,8 +55,11 @@ router.patch('/password', requireAuth, async (req, res) => {
     return res.status(401).json({ error: 'Old password is incorrect.' })
   }
 
-  user.passwordHash = await bcrypt.hash(String(newPassword), SALT_ROUNDS)
-  usersByEmail.set(user.email, user)
+  const nextPasswordHash = await bcrypt.hash(String(newPassword), SALT_ROUNDS)
+  await query('UPDATE users SET password = ?, updated_at = CURDATE() WHERE id = ?', [
+    nextPasswordHash,
+    user.id,
+  ])
 
   return res.json({ ok: true })
 })
