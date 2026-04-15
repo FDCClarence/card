@@ -1,0 +1,22 @@
+@import 'tailwindcss';
+@import './styles/theme.css';
+@import './styles/animations.css';
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-body);
+  background:
+    radial-gradient(circle at 20% 20%, rgb(233 69 96 / 14%), transparent 35%),
+    radial-gradient(circle at 80% 0%, rgb(245 166 35 / 16%), transparent 30%),
+    var(--color-bg);
+  color: var(--color-text);
+}
+
+#root {
+  min-height: 100vh;
+}

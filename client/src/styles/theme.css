@@ -1,0 +1,11 @@
+:root {
+  --color-bg: #1a1a2e;
+  --color-surface: #16213e;
+  --color-card: #0f3460;
+  --color-accent: #e94560;
+  --color-gold: #f5a623;
+  --color-text: #eaeaea;
+  --color-muted: #8892a4;
+  --font-display: 'Fredoka One', cursive;
+  --font-body: 'Nunito', sans-serif;
+}

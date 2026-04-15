@@ -1,0 +1,124 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   Global keyframe definitions
+   Applied conditionally below via prefers-reduced-motion media queries.
+───────────────────────────────────────────────────────────────────────────── */
+
+@keyframes pageEnter {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+@keyframes spinnerRotate {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes spinnerPulse {
+  0%, 100% { opacity: 0.35; }
+  50%       { opacity: 1;    }
+}
+
+@keyframes cardFlipIn {
+  from { opacity: 0; transform: perspective(500px) rotateY(80deg) scale(0.95); }
+  to   { opacity: 1; transform: perspective(500px) rotateY(0deg)  scale(1);    }
+}
+
+@keyframes newBadgeLife {
+  0%   { opacity: 0; transform: scale(0.6) translateY(3px);  }
+  12%  { opacity: 1; transform: scale(1)   translateY(0);    }
+  80%  { opacity: 1; transform: scale(1)   translateY(0);    }
+  100% { opacity: 0; transform: scale(0.8) translateY(-3px); }
+}
+
+@keyframes legendaryBorderGlow {
+  0%, 100% {
+    box-shadow:
+      0 0 14px rgba(245, 158, 11, 0.45),
+      0 0 3px  rgba(245, 158, 11, 0.7),
+      0 8px 28px rgba(0, 0, 0, 0.55);
+  }
+  50% {
+    box-shadow:
+      0 0 30px rgba(245, 158, 11, 0.8),
+      0 0 8px  rgba(255, 215, 80, 0.65),
+      0 8px 28px rgba(0, 0, 0, 0.55);
+  }
+}
+
+@keyframes toastSlideIn {
+  from { transform: translateX(110%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+@keyframes toastSlideOut {
+  from { transform: translateX(0);    opacity: 1; max-height: 80px;  margin-bottom: 10px; }
+  to   { transform: translateX(110%); opacity: 0; max-height: 0;     margin-bottom: 0;    }
+}
+
+@keyframes deckEntryPop {
+  0%   { transform: scale(1);    }
+  40%  { transform: scale(1.05); }
+  70%  { transform: scale(0.98); }
+  100% { transform: scale(1);    }
+}
+
+@keyframes deckEntryRemove {
+  from { transform: translateX(0);   opacity: 1; max-height: 64px; margin-bottom: 8px; padding-top: 8px; padding-bottom: 8px; }
+  to   { transform: translateX(50%); opacity: 0; max-height: 0;    margin-bottom: 0;   padding-top: 0;   padding-bottom: 0;   }
+}
+
+@keyframes queueNumberPop {
+  0%   { transform: scale(1);    color: var(--color-gold); }
+  35%  { transform: scale(1.35); color: #fde68a;           }
+  100% { transform: scale(1);    color: var(--color-gold); }
+}
+
+@keyframes connectingPulse {
+  0%, 100% { opacity: 0.45; transform: scale(0.92); }
+  50%       { opacity: 1;    transform: scale(1.06); }
+}
+
+/* ─── Motion-safe: enable all animations ────────────────────────────────── */
+
+@media (prefers-reduced-motion: no-preference) {
+  .page-enter {
+    animation: pageEnter 220ms ease forwards;
+  }
+
+  .spinner-icon {
+    animation: spinnerRotate 0.7s linear infinite;
+  }
+
+  .toast-enter {
+    animation: toastSlideIn 260ms cubic-bezier(0.34, 1.4, 0.64, 1) forwards;
+  }
+
+  .toast-exit {
+    animation: toastSlideOut 230ms ease forwards;
+    overflow: hidden;
+  }
+
+  .queue-number-pop {
+    animation: queueNumberPop 420ms ease forwards;
+  }
+
+  .connecting-pulse {
+    animation: connectingPulse 1.5s ease-in-out infinite;
+  }
+}
+
+/* ─── Reduced motion: minimal but not broken ────────────────────────────── */
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner-icon {
+    animation: spinnerPulse 1.5s ease-in-out infinite;
+  }
+
+  .toast-enter {
+    animation: none;
+  }
+
+  .toast-exit {
+    animation: none;
+    display: none;
+  }
+}

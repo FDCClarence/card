@@ -1,0 +1,77 @@
+[
+  {
+    "id": "card_001",
+    "name": "Stone Golem",
+    "image": "/assets/cards/stone-golem.png",
+    "rarity": "common",
+    "description": "Slow but unmovable. Good luck.",
+    "stats": {
+      "health": 8,
+      "attack": 3,
+      "defense": 4,
+      "rollModifier": 1
+    },
+    "effects": ["shield_allies", "golem_death_nova"],
+    "tags": ["tanky", "summon"]
+  },
+  {
+    "id": "card_002",
+    "name": "Ember Fox",
+    "image": "/assets/cards/ember-fox.png",
+    "rarity": "rare",
+    "description": "Quick and fiery. Burns on contact.",
+    "stats": {
+      "health": 4,
+      "attack": 6,
+      "defense": 1,
+      "rollModifier": 2
+    },
+    "effects": ["burn_on_attack"],
+    "tags": ["aggressive", "elemental"]
+  },
+  {
+    "id": "card_003",
+    "name": "Mossy Sprite",
+    "image": "/assets/cards/mossy-sprite.png",
+    "rarity": "common",
+    "description": "Heals the weakest friend each turn. A very good plant.",
+    "stats": {
+      "health": 5,
+      "attack": 2,
+      "defense": 2,
+      "rollModifier": 0
+    },
+    "effects": ["heal_weakest_ally"],
+    "tags": ["support", "nature"]
+  },
+  {
+    "id": "card_004",
+    "name": "Starfall Witch",
+    "image": "/assets/cards/starfall-witch.png",
+    "rarity": "epic",
+    "description": "Calls a meteor from the heavens on summon. Dramatic.",
+    "stats": {
+      "health": 5,
+      "attack": 5,
+      "defense": 2,
+      "rollModifier": 3
+    },
+    "effects": ["meteor_on_summon"],
+    "tags": ["magic", "aoe"]
+  },
+  {
+    "id": "card_005",
+    "name": "Tavern Brawler",
+    "image": "/assets/cards/tavern-brawler.png",
+    "rarity": "common",
+    "description": "Gets stronger each time it survives a hit.",
+    "stats": {
+      "health": 6,
+      "attack": 4,
+      "defense": 2,
+      "rollModifier": 1
+    },
+    "effects": ["rage_on_hit"],
+    "tags": ["bruiser", "scaling"]
+  }
+]

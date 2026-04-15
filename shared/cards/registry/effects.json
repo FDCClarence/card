@@ -1,0 +1,64 @@
+{
+  "shield_allies": {
+    "trigger": "on_attack",
+    "label": "Shield Allies",
+    "description": "Give adjacent allies +1 defense when this card attacks.",
+    "icon": "🛡️",
+    "params": {
+      "type": "stat_boost",
+      "stat": "defense",
+      "value": 1,
+      "target": "adjacent_allies"
+    }
+  },
+  "golem_death_nova": {
+    "trigger": "on_death",
+    "label": "Death Nova",
+    "description": "On death, summon a copy of the last card your opponent played with half its stats.",
+    "icon": "💀",
+    "params": null
+  },
+  "burn_on_attack": {
+    "trigger": "on_attack",
+    "label": "Ignite",
+    "description": "Apply 2 burn damage to the defender on attack.",
+    "icon": "🔥",
+    "params": {
+      "type": "damage_over_time",
+      "damage": 2,
+      "duration": 2,
+      "target": "defender"
+    }
+  },
+  "heal_weakest_ally": {
+    "trigger": "on_turn_start",
+    "label": "Nature's Mend",
+    "description": "At the start of each turn, restore 1 health to the ally with the lowest health.",
+    "icon": "🌿",
+    "params": {
+      "type": "heal",
+      "amount": 1,
+      "target": "lowest_health_ally"
+    }
+  },
+  "meteor_on_summon": {
+    "trigger": "on_summon",
+    "label": "Starfall",
+    "description": "On summon, deal 3 damage to all enemy cards.",
+    "icon": "☄️",
+    "params": null
+  },
+  "rage_on_hit": {
+    "trigger": "on_damage_received",
+    "label": "Brawler's Rage",
+    "description": "Each time this card takes damage, permanently gain +1 attack.",
+    "icon": "💢",
+    "params": {
+      "type": "stat_boost",
+      "stat": "attack",
+      "value": 1,
+      "target": "self",
+      "permanent": true
+    }
+  }
+}

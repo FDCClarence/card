@@ -1,0 +1,413 @@
+/* ─── CSS custom properties (all colors flow through here) ─────────────────── */
+.card {
+  --rarity-border: #9ca3af;
+  --rarity-glow: rgba(156, 163, 175, 0.3);
+  --rarity-glow-hover: rgba(156, 163, 175, 0.55);
+
+  /* sizing — overridden per size variant */
+  --card-w: 180px;
+  --card-h: 252px;
+  --name-font: 0.85rem;
+  --desc-font: 0.65rem;
+  --badge-font: 0.7rem;
+  --badge-pad: 3px 7px;
+  --badge-gap: 4px;
+  --radius: 16px;
+}
+
+/* ─── Size variants ────────────────────────────────────────────────────────── */
+.card.sm {
+  --card-w: 120px;
+  --card-h: 168px;
+  --name-font: 0.65rem;
+  --desc-font: 0.52rem;
+  --badge-font: 0.55rem;
+  --badge-pad: 2px 5px;
+  --badge-gap: 3px;
+  --radius: 12px;
+}
+
+.card.lg {
+  --card-w: 240px;
+  --card-h: 336px;
+  --name-font: 1.05rem;
+  --desc-font: 0.75rem;
+  --badge-font: 0.82rem;
+  --badge-pad: 4px 10px;
+  --badge-gap: 6px;
+  --radius: 20px;
+}
+
+/* ─── Rarity color overrides ───────────────────────────────────────────────── */
+.rarity-common {
+  --rarity-border: #9ca3af;
+  --rarity-glow: rgba(156, 163, 175, 0.3);
+  --rarity-glow-hover: rgba(156, 163, 175, 0.55);
+}
+
+.rarity-rare {
+  --rarity-border: #3b82f6;
+  --rarity-glow: rgba(59, 130, 246, 0.4);
+  --rarity-glow-hover: rgba(59, 130, 246, 0.7);
+}
+
+.rarity-epic {
+  --rarity-border: #a855f7;
+  --rarity-glow: rgba(168, 85, 247, 0.5);
+  --rarity-glow-hover: rgba(168, 85, 247, 0.8);
+}
+
+.rarity-legendary {
+  --rarity-border: #f59e0b;
+  --rarity-glow: rgba(245, 158, 11, 0.6);
+  --rarity-glow-hover: rgba(245, 158, 11, 0.9);
+}
+
+/* ─── Root card shell ──────────────────────────────────────────────────────── */
+.card {
+  position: relative;
+  width: var(--card-w);
+  height: var(--card-h);
+  border-radius: var(--radius);
+  border: 2px solid var(--rarity-border);
+  background: var(--color-card, #0f3460);
+  box-shadow:
+    0 0 12px var(--rarity-glow),
+    0 8px 24px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+  transition:
+    transform 300ms ease,
+    box-shadow 300ms ease,
+    filter 300ms ease,
+    opacity 300ms ease;
+  flex-shrink: 0;
+  transform: translateZ(0);
+  will-change: transform, box-shadow;
+}
+
+/* ─── Hover ────────────────────────────────────────────────────────────────── */
+.card:not(.disabled):hover {
+  transform: translateY(-8px) scale(1.03);
+  box-shadow:
+    0 0 28px var(--rarity-glow-hover),
+    0 20px 40px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  z-index: 10;
+}
+
+/* Hover should not fight the flip-in animation */
+@media (prefers-reduced-motion: no-preference) {
+  .card.flipIn:not(.disabled):hover {
+    transform: translateY(-8px) scale(1.03);
+  }
+}
+
+/* ─── Selected ─────────────────────────────────────────────────────────────── */
+.card.selected {
+  border-color: #f5a623;
+  box-shadow:
+    0 0 0 3px rgba(245, 166, 35, 0.6),
+    0 0 32px rgba(245, 166, 35, 0.5),
+    0 12px 32px rgba(0, 0, 0, 0.6);
+}
+
+@keyframes ring-pulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 3px rgba(245, 166, 35, 0.6),
+      0 0 32px rgba(245, 166, 35, 0.5),
+      0 12px 32px rgba(0, 0, 0, 0.6);
+  }
+  50% {
+    box-shadow:
+      0 0 0 6px rgba(245, 166, 35, 0.25),
+      0 0 48px rgba(245, 166, 35, 0.65),
+      0 16px 40px rgba(0, 0, 0, 0.65);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .card.selected {
+    animation: ring-pulse 1.8s ease-in-out infinite;
+  }
+}
+
+/* ─── Disabled ─────────────────────────────────────────────────────────────── */
+.card.disabled {
+  filter: saturate(0.2) brightness(0.6);
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* ─── Flip-in on mount ─────────────────────────────────────────────────────── */
+
+/* cardFlipIn keyframe is global, defined in animations.css */
+@media (prefers-reduced-motion: no-preference) {
+  .card.flipIn {
+    animation: cardFlipIn 360ms cubic-bezier(0.34, 1.1, 0.64, 1) both;
+  }
+
+  /* Legendary: flip then border glow (delay matches flip duration) */
+  .card.flipIn.rarity-legendary {
+    animation:
+      cardFlipIn 360ms cubic-bezier(0.34, 1.1, 0.64, 1) both,
+      legendaryBorderGlow 2.5s ease-in-out 380ms infinite;
+  }
+}
+
+/* Legendary glow without the flip (reduced motion or after class removal) */
+@media (prefers-reduced-motion: no-preference) {
+  .card.rarity-legendary:not(.flipIn) {
+    animation: legendaryBorderGlow 2.5s ease-in-out infinite;
+  }
+}
+
+/* ─── Legendary body shimmer ───────────────────────────────────────────────── */
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0%;
+  }
+  100% {
+    background-position: -200% 0%;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .card.rarity-legendary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      115deg,
+      transparent 30%,
+      rgba(245, 158, 11, 0.15) 50%,
+      transparent 70%
+    );
+    background-size: 200% 200%;
+    animation: shimmer 3s linear infinite;
+    pointer-events: none;
+    z-index: 1;
+  }
+}
+
+/* ─── "NEW" badge ──────────────────────────────────────────────────────────── */
+
+/* newBadgeLife keyframe is global, defined in animations.css */
+.newBadge {
+  position: absolute;
+  top: 7px;
+  left: 7px;
+  z-index: 10;
+  font-family: var(--font-body, 'Nunito', sans-serif);
+  font-size: calc(var(--badge-font) * 0.82);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 99px;
+  background: var(--color-accent, #e94560);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  /* keeps element at opacity:0 after animation ends */
+  animation-fill-mode: forwards;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .newBadge {
+    animation: newBadgeLife 2000ms ease forwards;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .newBadge {
+    display: none;
+  }
+}
+
+/* ─── Image area (top ~55%) ────────────────────────────────────────────────── */
+.imageWrap {
+  position: relative;
+  width: 100%;
+  flex: 0 0 55%;
+  overflow: hidden;
+  border-radius: var(--radius) var(--radius) 0 0;
+}
+
+.image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+  display: block;
+  transition: transform 300ms ease;
+}
+
+.card:not(.disabled):hover .image {
+  transform: scale(1.06);
+}
+
+/* Fallback gradient shown when img fails */
+.imageFallback {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--rarity-border) 30%, #0f3460) 0%,
+    #0f3460 60%,
+    #1a1a2e 100%
+  );
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.4rem;
+}
+
+/* Bottom-of-image inner shadow */
+.imageWrap::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 40%;
+  background: linear-gradient(to bottom, transparent, rgba(10, 15, 30, 0.82));
+  pointer-events: none;
+}
+
+/* ─── Name bar ─────────────────────────────────────────────────────────────── */
+.namebar {
+  position: relative;
+  z-index: 2;
+  margin-top: -12px;
+  padding: 4px 10px 5px;
+  background: rgba(10, 15, 30, 0.82);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.name {
+  font-family: var(--font-display, 'Fredoka One', cursive);
+  font-size: var(--name-font);
+  color: var(--color-text, #eaeaea);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: 0.02em;
+}
+
+/* ─── Stats row ────────────────────────────────────────────────────────────── */
+.statsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--badge-gap);
+  padding: 5px 8px 4px;
+  justify-content: center;
+}
+
+/* ─── Description / effects ────────────────────────────────────────────────── */
+.details {
+  padding: 0 9px 6px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.description {
+  font-family: var(--font-body, 'Nunito', sans-serif);
+  font-size: var(--desc-font);
+  color: var(--color-muted, #8892a4);
+  font-style: italic;
+  line-height: 1.35;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+}
+
+.effectsList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  margin-top: 2px;
+}
+
+.effectPill {
+  font-family: var(--font-body, 'Nunito', sans-serif);
+  font-size: calc(var(--desc-font) * 0.9);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 99px;
+  padding: 1px 6px;
+  color: var(--color-muted, #8892a4);
+  white-space: nowrap;
+}
+
+/* ─── Rarity badge ─────────────────────────────────────────────────────────── */
+.rarityBadge {
+  position: absolute;
+  bottom: 7px;
+  right: 8px;
+  font-family: var(--font-body, 'Nunito', sans-serif);
+  font-size: calc(var(--badge-font) * 0.88);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 99px;
+  background: var(--rarity-border);
+  color: #0f1117;
+  line-height: 1.3;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  z-index: 3;
+}
+
+/* ─── Stat badge (in CardStats.tsx) ───────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: var(--badge-pad);
+  border-radius: 99px;
+  font-family: var(--font-body, 'Nunito', sans-serif);
+  font-size: var(--badge-font);
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+  box-shadow:
+    0 2px 6px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
+.badge.health {
+  background: #ef4444;
+}
+.badge.attack {
+  background: #f97316;
+}
+.badge.defense {
+  background: #3b82f6;
+}
+.badge.rollModifier {
+  background: #8b5cf6;
+}
+
+.badgeIcon {
+  font-size: 0.85em;
+  line-height: 1;
+}
