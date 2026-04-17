@@ -63,7 +63,15 @@ export interface MonsterSlot {
 // ─── Players & room ───────────────────────────────────────────────────────────
 
 export interface RuntimePlayerState {
+  /** Live socket id for this slot. Rebinds on reconnect via `game:join`. */
   id: string
+  /**
+   * Stable authenticated user id owning this slot. Used to re-associate a
+   * player's slot across socket reconnects (e.g. the unavoidable
+   * Lobby→Game socket churn, or a tab refresh mid-match).
+   * May be `null` for unauthenticated players (dev / legacy).
+   */
+  userId: number | null
   health: number
   hand: RuntimeCardInstance[]
   deck: RuntimeCardInstance[]
@@ -124,6 +132,14 @@ export interface GameServerToClientEvents {
 }
 
 export interface GameClientToServerEvents {
+  /**
+   * Re-associate the current socket with a player slot in an existing game
+   * room. Sent by the client on GamePage mount and after socket reconnects.
+   * The server finds the slot whose `userId` matches the caller's auth token,
+   * rebinds `state.players[slot].id` to this `socket.id`, joins the socket
+   * to the room, and replies with a fresh `game:stateUpdate`.
+   */
+  'game:join': (payload: { roomId: string }) => void
   'game:playMonster': (payload: { instanceId: string }) => void
   'game:attackMonster': (payload: {
     attackerInstanceId: string

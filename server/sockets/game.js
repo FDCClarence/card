@@ -54,6 +54,17 @@ const rooms = new Map()
 /** @type {Map<string, string>} */
 const socketToRoom = new Map()
 
+/**
+ * Pending disconnect timers, keyed by roomId. When a player's socket drops
+ * we schedule the "opponent wins" emit after a grace period so a quick
+ * reconnect (tab refresh, Lobby→Game socket churn) doesn't instantly end
+ * the match. Cleared by `game:join`.
+ * @type {Map<string, NodeJS.Timeout>}
+ */
+const disconnectTimers = new Map()
+/** Milliseconds a player has to reconnect before the opponent is declared winner. */
+const RECONNECT_GRACE_MS = 15000
+
 function ts() {
   return new Date().toISOString()
 }
@@ -122,6 +133,11 @@ function destroyRoom(roomId) {
   for (const p of room.state.players) {
     if (p.id) socketToRoom.delete(p.id)
   }
+  const pendingTimer = disconnectTimers.get(roomId)
+  if (pendingTimer) {
+    clearTimeout(pendingTimer)
+    disconnectTimers.delete(roomId)
+  }
   rooms.delete(roomId)
   log('roomDestroyed', { roomId })
 }
@@ -189,7 +205,8 @@ export async function startGame(io, roomId, socketIds) {
   }
 
   const room = new GameRoom(roomId)
-  room.initGame(id0, id1, [deck0, deck1])
+  // userIds are the stable key for reconnect rebinding via `game:join`.
+  room.initGame(id0, id1, [deck0, deck1], [userId0, userId1])
   rooms.set(roomId, room)
   socketToRoom.set(id0, roomId)
   socketToRoom.set(id1, roomId)
@@ -197,8 +214,25 @@ export async function startGame(io, roomId, socketIds) {
   socket0?.join(roomId)
   socket1?.join(roomId)
 
-  log('startGame', { roomId, players: socketIds, deckSizes: [deck0.length, deck1.length] })
+  log('startGame', {
+    roomId,
+    players: socketIds,
+    userIds: [userId0, userId1],
+    deckSizes: [deck0.length, deck1.length],
+  })
+  // The initial emit may race with the client's Lobby→Game navigation. That's
+  // OK: clients explicitly re-request the state with `game:join` on mount.
   io.to(roomId).emit('game:stateUpdate', room.state)
+}
+
+// ─── Reconnect helpers ────────────────────────────────────────────────────────
+
+function clearDisconnectTimer(roomId) {
+  const t = disconnectTimers.get(roomId)
+  if (t) {
+    clearTimeout(t)
+    disconnectTimers.delete(roomId)
+  }
 }
 
 // ─── Public: registerGameHandlers ─────────────────────────────────────────────
@@ -208,6 +242,71 @@ export async function startGame(io, roomId, socketIds) {
  * @param {import('socket.io').Socket} socket
  */
 export function registerGameHandlers(io, socket) {
+  // ── game:join — reconnect / rebind the current socket to its slot ────────
+  //
+  // This is what makes the Lobby→Game transition actually work. The Lobby
+  // socket closes during navigation (React unmount), the client opens a fresh
+  // socket for the Game page, and that socket has a different id than the
+  // one baked into `room.state.players[i].id`. Without this event the server
+  // has no way to map the new socket back to the right slot and the client
+  // sits on "Connecting…" forever.
+  socket.on('game:join', (payload = {}) => {
+    const { roomId } = payload
+    if (!roomId || typeof roomId !== 'string') {
+      socket.emit('game:error', { message: 'game:join: roomId required' })
+      return
+    }
+
+    const room = rooms.get(roomId)
+    if (!room) {
+      socket.emit('game:error', { message: 'Room not found' })
+      return
+    }
+
+    const userId = getUserIdFromSocket(socket)
+
+    // Prefer stable userId matching; fall back to socket.id (covers dev /
+    // unauthenticated flows) and finally an empty slot (initial claim).
+    let slotIndex = -1
+    if (userId !== null) {
+      slotIndex = room.state.players.findIndex((p) => p.userId === userId)
+    }
+    if (slotIndex === -1) {
+      slotIndex = room.state.players.findIndex((p) => p.id === socket.id)
+    }
+    if (slotIndex === -1) {
+      slotIndex = room.state.players.findIndex((p) => !p.id)
+    }
+
+    if (slotIndex === -1) {
+      socket.emit('game:error', { message: 'Not a player in this room' })
+      log('join:notAPlayer', { roomId, socketId: socket.id, userId })
+      return
+    }
+
+    // Free the previous socket→room binding if the slot was held by a
+    // different (now stale) socket id.
+    const prevSocketId = room.state.players[slotIndex].id
+    if (prevSocketId && prevSocketId !== socket.id) {
+      socketToRoom.delete(prevSocketId)
+    }
+
+    room.state.players[slotIndex].id = socket.id
+    // First authenticated join also claims the userId for the slot (covers
+    // the race where startGame finished before the client's auth was parsed).
+    if (userId !== null && room.state.players[slotIndex].userId == null) {
+      room.state.players[slotIndex].userId = userId
+    }
+    socketToRoom.set(socket.id, roomId)
+    socket.join(roomId)
+
+    // Cancel any pending "opponent wins" timer — player is back.
+    clearDisconnectTimer(roomId)
+
+    log('join', { roomId, socketId: socket.id, userId, slotIndex })
+    socket.emit('game:stateUpdate', room.state)
+  })
+
   socket.on('game:playMonster', (payload = {}) => {
     const { instanceId } = payload
     guardAction(socket, (room, playerIndex) => {
@@ -275,15 +374,39 @@ export function registerGameHandlers(io, socket) {
     }
 
     const disconnectedIndex = getPlayerIndex(socket, room)
-    const winnerIndex = disconnectedIndex === 0 ? 1 : 0
+    socketToRoom.delete(socket.id)
+    if (disconnectedIndex === -1) return
 
-    io.to(roomId).emit('game:over', { winner: winnerIndex })
-    log('disconnect', {
+    // Clear the socket id on the slot so `game:join` can rebind it.
+    room.state.players[disconnectedIndex].id = ''
+
+    // Don't end the match immediately — the client may just be navigating
+    // between pages (Lobby → Game, or a tab refresh). Give them a grace
+    // period to reconnect via `game:join`.
+    clearDisconnectTimer(roomId)
+    const winnerIndex = disconnectedIndex === 0 ? 1 : 0
+    log('disconnect:pending', {
       roomId,
       socketId: socket.id,
       disconnectedIndex,
-      winner: winnerIndex,
+      graceMs: RECONNECT_GRACE_MS,
     })
-    destroyRoom(roomId)
+
+    const timer = setTimeout(() => {
+      disconnectTimers.delete(roomId)
+      // If the slot was rebound during the grace period, bail out.
+      const live = rooms.get(roomId)
+      if (!live) return
+      if (live.state.players[disconnectedIndex].id) return
+
+      io.to(roomId).emit('game:over', { winner: winnerIndex })
+      log('disconnect:timeout', {
+        roomId,
+        disconnectedIndex,
+        winner: winnerIndex,
+      })
+      destroyRoom(roomId)
+    }, RECONNECT_GRACE_MS)
+    disconnectTimers.set(roomId, timer)
   })
 }

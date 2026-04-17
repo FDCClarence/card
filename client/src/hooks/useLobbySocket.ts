@@ -84,7 +84,8 @@ export function useLobbySocket() {
     })
 
     return () => {
-      // If we were in the queue, tell the server before disconnecting.
+      // If we were in the queue and the user is backing out (not entering a
+      // match), tell the server so their slot is released.
       if (inQueueRef.current) {
         socket.emit('lobby:leaveQueue')
         inQueueRef.current = false
@@ -94,7 +95,10 @@ export function useLobbySocket() {
       socket.off('lobby:roomCreated')
       socket.off('lobby:roomJoined')
       socket.off('lobby:roomNotFound')
-      socket.disconnect()
+      // Do NOT disconnect here. The same socket needs to carry the player
+      // into the GamePage so the server's in-flight `startGame` keeps a
+      // stable identity. GamePage (or a top-level owner) is responsible for
+      // teardown on logout / full app exit.
     }
   }, [])
 

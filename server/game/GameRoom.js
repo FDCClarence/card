@@ -26,6 +26,7 @@ export default class GameRoom {
       players: [
         {
           id: '',
+          userId: null,
           health: PLAYER_MAX_HEALTH,
           hand: [],
           deck: [],
@@ -35,6 +36,7 @@ export default class GameRoom {
         },
         {
           id: '',
+          userId: null,
           health: PLAYER_MAX_HEALTH,
           hand: [],
           deck: [],
@@ -70,9 +72,11 @@ export default class GameRoom {
 
   // ─── Public API ────────────────────────────────────────────────────────────
 
-  initGame(player0SocketId, player1SocketId, decks) {
+  initGame(player0SocketId, player1SocketId, decks, userIds = [null, null]) {
     const [deck0, deck1] = decks
     const socketIds = [player0SocketId, player1SocketId]
+    const [userId0, userId1] = userIds
+    const slotUserIds = [userId0 ?? null, userId1 ?? null]
     const shuffledDecks = [this._shuffle([...deck0]), this._shuffle([...deck1])]
 
     const winner = Math.random() < 0.5 ? 0 : 1
@@ -89,6 +93,7 @@ export default class GameRoom {
 
     for (let i = 0; i < 2; i++) {
       this.state.players[i].id = socketIds[i]
+      this.state.players[i].userId = slotUserIds[i]
       this.state.players[i].health = PLAYER_MAX_HEALTH
       this.state.players[i].deck = shuffledDecks[i]
       this.state.players[i].hand = []

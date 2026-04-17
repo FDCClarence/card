@@ -5,10 +5,20 @@
  * (`game:stateUpdate`, `game:over`, `game:combatResult`) plus `game:error`,
  * and hands everything off to <GameBoard/>.
  *
- * Known limitation: `socket.disconnect()` on unmount means navigating away
- * from this page closes the active match session. A full fix (keeping a
- * persistent socket for the lobby → game transition so the server-side
- * GameRoom's stored socket.id stays valid) is out of scope for this chunk.
+ * Reconnect model:
+ *   On mount (and on any subsequent `connect`) we emit `game:join { roomId }`.
+ *   The server uses the authenticated userId from the handshake token to
+ *   find the caller's slot in the room, rebinds that slot to our live
+ *   socket.id, joins us to the socket.io room, and replies with a fresh
+ *   `game:stateUpdate`. This survives:
+ *     - the Lobby→Game socket churn (Lobby used to `socket.disconnect()` on
+ *       unmount, producing a brand-new socket.id the server didn't know),
+ *     - a tab refresh mid-match,
+ *     - transient network drops (within the server's disconnect grace window).
+ *
+ * We deliberately do NOT disconnect the socket on unmount. The singleton
+ * connection is shared app-wide; tearing it down here would cause the same
+ * class of bug we just fixed if the user navigates away and back.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -36,12 +46,21 @@ export default function GamePage() {
   // ── Socket lifecycle ──────────────────────────────────────────────────────
 
   useEffect(() => {
+    if (!roomId) return
+
+    // Ensure the singleton is open. No-op if already connected.
     socket.connect()
     socketIdRef.current = socket.id
+
+    const requestJoin = () => {
+      socket.emit('game:join', { roomId })
+    }
 
     const onConnect = () => {
       socketIdRef.current = socket.id
       forceRerender((n) => n + 1)
+      // New socket.id → must re-bind the slot on the server.
+      requestJoin()
     }
 
     const onState = (nextState: GameState) => {
@@ -74,15 +93,21 @@ export default function GamePage() {
     socket.on('game:combatResult', onCombat)
     socket.on('game:error', onError)
 
+    // If we mounted already-connected (common case: coming from the Lobby),
+    // `connect` won't fire, so we have to kick off the join ourselves.
+    if (socket.connected) {
+      requestJoin()
+    }
+
     return () => {
       socket.off('connect', onConnect)
       socket.off('game:stateUpdate', onState)
       socket.off('game:over', onOver)
       socket.off('game:combatResult', onCombat)
       socket.off('game:error', onError)
-      socket.disconnect()
+      // Intentionally no socket.disconnect(): see file header.
     }
-  }, [])
+  }, [roomId])
 
   // ── Emit callbacks ────────────────────────────────────────────────────────
 
