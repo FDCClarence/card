@@ -2,6 +2,28 @@
 export type { Rarity, CardStats, EffectMeta, CardDefinition } from '../cards/cardTypes.js'
 export { loadCards, loadEffects } from '../cards/registry/index.js'
 
+// ─── Game runtime types (shapes emitted by server/game/GameRoom) ──────────────
+export type {
+  MonsterStats,
+  MonsterSlot,
+  RuntimeCardInstance,
+  RuntimePlayerState,
+  RuntimeGameState,
+  CoinFlipState,
+  GamePhase,
+  CombatResult,
+  GameOverWinner,
+  GameOverPayload,
+  GameServerToClientEvents,
+  GameClientToServerEvents,
+} from '../game/runtimeTypes.js'
+
+// Imports used by the aggregated socket event interfaces below.
+import type {
+  GameClientToServerEvents,
+  GameServerToClientEvents,
+} from '../game/runtimeTypes.js'
+
 // ─── Effect system ────────────────────────────────────────────────────────────
 export type {
   CardInstance,
@@ -64,10 +86,14 @@ export interface LobbyClientToServerEvents {
   'lobby:joinRoom': (payload: { key: string }) => void
 }
 
-export interface ServerToClientEvents extends LobbyServerToClientEvents {
+export interface ServerToClientEvents
+  extends LobbyServerToClientEvents,
+    GameServerToClientEvents {
   lobbyState: (state: LobbyState) => void
 }
 
-export interface ClientToServerEvents extends LobbyClientToServerEvents {
+export interface ClientToServerEvents
+  extends LobbyClientToServerEvents,
+    GameClientToServerEvents {
   joinLobby: (playerName: string) => void
 }

@@ -14,6 +14,7 @@ import authRouter from '../routes/auth.js'
 import cardsRouter from '../routes/cards.js'
 import deckRouter from '../routes/deck.js'
 import userRouter from '../routes/user.js'
+import { registerGameHandlers } from '../sockets/game.js'
 import { registerLobbyHandlers } from '../sockets/lobby.js'
 import { checkDbConnection } from './db.js'
 import { httpPayloadFromDbError } from './httpErrors.js'
@@ -115,6 +116,7 @@ io.on('connection', (socket) => {
   })
 
   registerLobbyHandlers(io, socket)
+  registerGameHandlers(io, socket)
 })
 
 httpServer.listen(PORT, () => {

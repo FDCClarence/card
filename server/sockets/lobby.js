@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto'
 
+import { startGame } from './game.js'
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function ts() {
@@ -74,6 +76,10 @@ function tryMatch(io) {
     io.to(socketB).emit('lobby:matchFound', { roomId })
 
     log('matchFound', { roomId, players: [socketA, socketB] })
+
+    startGame(io, roomId, [socketA, socketB]).catch((err) => {
+      log('startGame:error', { roomId, error: err?.message ?? err })
+    })
   }
 }
 
@@ -174,6 +180,11 @@ export function registerLobbyHandlers(io, socket) {
         io.to(sid).emit('lobby:matchFound', { roomId: room.roomId })
       })
       log('matchFound:private', { roomId: room.roomId, players: room.sockets })
+
+      const [socketA, socketB] = room.sockets
+      startGame(io, room.roomId, [socketA, socketB]).catch((err) => {
+        log('startGame:error', { roomId: room.roomId, error: err?.message ?? err })
+      })
     }
   })
 

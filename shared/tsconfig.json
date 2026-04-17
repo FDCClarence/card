@@ -10,5 +10,5 @@
     "skipLibCheck": true,
     "resolveJsonModule": true
   },
-  "include": ["index.ts", "src", "cards", "effects"]
+  "include": ["index.ts", "src", "cards", "effects", "game"]
 }
