@@ -77,6 +77,88 @@
   50%       { opacity: 1;    transform: scale(1.06); }
 }
 
+/* ─── Game page — in-match "game feel" animations ─────────────────────────── */
+
+@keyframes summonPop {
+  0%   { transform: scale(0.8);  }
+  60%  { transform: scale(1.05); }
+  100% { transform: scale(1);    }
+}
+
+@keyframes attackLungeUp {
+  0%, 100% { transform: translateY(0);     }
+  50%      { transform: translateY(-20px); }
+}
+
+@keyframes attackLungeDown {
+  0%, 100% { transform: translateY(0);    }
+  50%      { transform: translateY(20px); }
+}
+
+/* Two red pulses over 400ms: opacity hits 1 at 25% and 75% of the timeline. */
+@keyframes damageFlash {
+  0%, 50%, 100% { opacity: 0; }
+  25%, 75%      { opacity: 1; }
+}
+
+@keyframes damageRise {
+  0%   { opacity: 1; transform: translate(-50%, 0);     }
+  100% { opacity: 0; transform: translate(-50%, -44px); }
+}
+
+@keyframes monsterDeath {
+  0%   { opacity: 1; transform: scale(1);   filter: saturate(1);   }
+  100% { opacity: 0; transform: scale(0.6); filter: saturate(0.3); }
+}
+
+@keyframes barrierPulseIdle {
+  0%, 100% { opacity: 0.6; }
+  50%      { opacity: 1;   }
+}
+
+@keyframes barrierExit {
+  0%   { opacity: 1; max-height: 48px; padding-top: 6px; padding-bottom: 6px; }
+  100% { opacity: 0; max-height: 0;    padding-top: 0;   padding-bottom: 0;   border-top-width: 0; border-bottom-width: 0; }
+}
+
+@keyframes healthGoldFlash {
+  0%   { opacity: 0; }
+  30%  { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes gameOverFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Scale 0.8 → 1.0 with a slight overshoot bounce. */
+@keyframes gameOverPop {
+  0%   { transform: scale(0.8); opacity: 0; }
+  60%  { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+@keyframes gameOverButtonIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+
+@keyframes endTurnGlow {
+  0%, 100% {
+    box-shadow:
+      2px 2px 0 rgba(0, 0, 0, 0.5),
+      0 0 18px rgba(192, 57, 43, 0.55),
+      0 0 36px rgba(192, 57, 43, 0.3);
+  }
+  50% {
+    box-shadow:
+      2px 2px 0 rgba(0, 0, 0, 0.5),
+      0 0 28px rgba(192, 57, 43, 0.85),
+      0 0 55px rgba(192, 57, 43, 0.5);
+  }
+}
+
 /* ─── Motion-safe: enable all animations ────────────────────────────────── */
 
 @media (prefers-reduced-motion: no-preference) {
@@ -104,6 +186,21 @@
   .connecting-pulse {
     animation: connectingPulse 1.5s ease-in-out infinite;
   }
+
+  /* ─ Game page ──────────────────────────────────────────────────────────── */
+  .animate-summon-pop         { animation: summonPop 300ms ease-out; }
+  .animate-lunge-up           { animation: attackLungeUp 200ms ease-out; }
+  .animate-lunge-down         { animation: attackLungeDown 200ms ease-out; }
+  .animate-damage-flash       { animation: damageFlash 400ms ease-in-out; }
+  .animate-damage-rise        { animation: damageRise 600ms ease-out forwards; }
+  .animate-monster-death      { animation: monsterDeath 300ms ease-in forwards; }
+  .animate-barrier-pulse      { animation: barrierPulseIdle 1.5s ease-in-out infinite; }
+  .animate-barrier-exit       { animation: barrierExit 500ms ease-in forwards; }
+  .animate-health-flash-gold  { animation: healthGoldFlash 500ms ease-out forwards; }
+  .animate-gameover-fade      { animation: gameOverFadeIn 600ms ease-out forwards; }
+  .animate-gameover-pop       { animation: gameOverPop 600ms cubic-bezier(0.2, 0.8, 0.2, 1.25) forwards; }
+  .animate-gameover-button-in { animation: gameOverButtonIn 400ms ease-out forwards; }
+  .animate-end-turn-glow      { animation: endTurnGlow 1.8s ease-in-out infinite; }
 }
 
 /* ─── Reduced motion: minimal but not broken ────────────────────────────── */

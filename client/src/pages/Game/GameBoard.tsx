@@ -5,13 +5,32 @@
  *
  * Layout is a single viewport (no scroll) with the local player's content
  * anchored to the bottom and the opponent's mirrored to the top.
+ *
+ * This file is also responsible for the board-level "game feel" animations
+ * that span multiple slots:
+ *   - Attack lunge: tracks the locally-initiated attacker so we can trigger
+ *     the lunge on the attacker's MonsterSlot when combatResult arrives.
+ *   - Death fade: wraps each slot in <FieldSlotWrapper/>, which keeps a just-
+ *     removed monster rendered for 300ms so it can play its exit animation.
+ *   - Barrier exit: the barrier line animates out over 500ms when the phase
+ *     transitions from 'barrier' → 'active'.
  */
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { HandCard } from './HandCard'
 import { MonsterSlot } from './MonsterSlot'
 import { PlayerHUD } from './PlayerHUD'
-import type { CombatResult, GameOverResult, GameState } from './game.types'
+import type {
+  CombatResult,
+  GameOverResult,
+  GameState,
+  MonsterSlot as MonsterSlotData,
+  GamePhase,
+} from './game.types'
+
+// Rendering the game-over overlay is owned by <GamePage/> (index.tsx); this
+// board only needs `gameOver` to disable the End Turn button once the match
+// has ended.
 
 const MAX_FIELD_SLOTS = 5
 
@@ -30,7 +49,7 @@ export interface GameBoardProps {
 export function GameBoard({
   state,
   myPlayerIndex,
-  lastCombat: _lastCombat,
+  lastCombat,
   gameOver,
   onPlayMonster,
   onAttackMonster,
@@ -49,7 +68,6 @@ export function GameBoard({
   const me = state.players[meIndex]
   const opp = state.players[oppIndex]
   const isMyTurn = state.activePlayer === meIndex && myPlayerIndex !== -1
-  const barrierActive = state.phase === 'barrier'
 
   // Clear stale selection if the selected attacker is no longer on the field
   // (e.g. it died in combat). Derived — no effect needed.
@@ -60,6 +78,29 @@ export function GameBoard({
     [selectedAttackerInstanceId, me.field],
   )
   const activeSelection = selectedStillOnField ? selectedAttackerInstanceId : null
+
+  // ── Attack lunge bookkeeping ───────────────────────────────────────────────
+  // Remember which monster the local player just committed to attack; when
+  // the authoritative combatResult arrives we tick the lunge key on that
+  // MonsterSlot to play the animation.
+  const pendingAttackerRef = useRef<string | null>(null)
+  const [lungeState, setLungeState] = useState<{
+    attackerId: string
+    key: number
+  } | null>(null)
+
+  useEffect(() => {
+    if (!lastCombat) return
+    const attackerId = pendingAttackerRef.current
+    if (!attackerId) return
+    pendingAttackerRef.current = null
+    setLungeState({ attackerId, key: Date.now() })
+    const timeoutId = window.setTimeout(() => setLungeState(null), 220)
+    return () => window.clearTimeout(timeoutId)
+  }, [lastCombat])
+
+  // ── Barrier exit animation ────────────────────────────────────────────────
+  const barrierVisible = useBarrierVisibility(state.phase)
 
   // ── Click handlers ─────────────────────────────────────────────────────────
 
@@ -86,6 +127,7 @@ export function GameBoard({
   const handleOpponentMonsterClick = useCallback(
     (instanceId: string) => {
       if (!isMyTurn || !activeSelection) return
+      pendingAttackerRef.current = activeSelection
       onAttackMonster(activeSelection, instanceId)
       clearSelection()
     },
@@ -96,9 +138,17 @@ export function GameBoard({
     if (!isMyTurn || !activeSelection) return
     if (opp.field.length > 0) return
     if (state.phase !== 'active') return
+    pendingAttackerRef.current = activeSelection
     onAttackPlayer(activeSelection)
     clearSelection()
-  }, [isMyTurn, activeSelection, opp.field.length, state.phase, onAttackPlayer, clearSelection])
+  }, [
+    isMyTurn,
+    activeSelection,
+    opp.field.length,
+    state.phase,
+    onAttackPlayer,
+    clearSelection,
+  ])
 
   const handleHandCardClick = useCallback(
     (instanceId: string, isEssence: boolean) => {
@@ -145,26 +195,29 @@ export function GameBoard({
       {/* Opponent HUD */}
       <PlayerHUD
         player={opp}
-        isOpponent
-        isActive={state.activePlayer === oppIndex}
-        onAvatarClick={opponentCanBeAttacked ? handleOpponentAvatarClick : undefined}
-        isAvatarTargetable={opponentCanBeAttacked}
-        label={`Opponent (P${oppIndex + 1})`}
+        isMe={false}
+        isTurn={state.activePlayer === oppIndex}
+        onEndTurn={noop}
+        isAttackTarget={opponentCanBeAttacked}
+        onAttackClick={opponentCanBeAttacked ? handleOpponentAvatarClick : undefined}
       />
 
       {/* Opponent field — rotated so cards face the local player */}
       <FieldRow>
         {Array.from({ length: MAX_FIELD_SLOTS }, (_, i) => {
           const m = opp.field[i] ?? null
-          const valid = !!m && isOpponentMonsterValidTarget(m.isSummoning)
           return (
             <div key={i} style={{ transform: 'rotate(180deg)' }}>
-              <MonsterSlot
+              <FieldSlotWrapper
                 monster={m}
                 isMySlot={false}
-                isSelected={false}
-                isValidTarget={valid}
-                onClick={() => m && handleOpponentMonsterClick(m.instanceId)}
+                isValidTarget={(mon) => isOpponentMonsterValidTarget(mon.isSummoning)}
+                onMonsterClick={handleOpponentMonsterClick}
+                // Opponent monsters never receive an attacker-lunge from our
+                // perspective (CombatResult doesn't carry attacker IDs).
+                lungeState={null}
+                lungeDirection="down"
+                isSelectedId={null}
               />
             </div>
           )
@@ -172,22 +225,22 @@ export function GameBoard({
       </FieldRow>
 
       {/* Barrier line */}
-      {barrierActive && <BarrierLine />}
+      {barrierVisible.render && <BarrierLine exiting={barrierVisible.exiting} />}
 
       {/* My field */}
       <FieldRow>
         {Array.from({ length: MAX_FIELD_SLOTS }, (_, i) => {
           const m = me.field[i] ?? null
-          const selected = !!m && activeSelection === m.instanceId
-          const valid = !!m && isMyMonsterValidTarget(m.isSummoning)
           return (
-            <MonsterSlot
+            <FieldSlotWrapper
               key={i}
               monster={m}
               isMySlot
-              isSelected={selected}
-              isValidTarget={valid}
-              onClick={() => m && handleMyMonsterClick(m.instanceId)}
+              isValidTarget={(mon) => isMyMonsterValidTarget(mon.isSummoning)}
+              onMonsterClick={handleMyMonsterClick}
+              lungeState={lungeState}
+              lungeDirection="up"
+              isSelectedId={activeSelection}
             />
           )
         })}
@@ -196,11 +249,9 @@ export function GameBoard({
       {/* My HUD */}
       <PlayerHUD
         player={me}
-        isOpponent={false}
-        isActive={isMyTurn}
+        isMe
+        isTurn={isMyTurn && !gameOver}
         onEndTurn={handleEndTurn}
-        canEndTurn={isMyTurn && !gameOver}
-        label={`You (P${meIndex + 1})`}
       />
 
       {/* My hand */}
@@ -222,26 +273,23 @@ export function GameBoard({
         )}
         {me.hand.map((card) => {
           const playable =
-            isMyTurn &&
-            (card.isEssence || me.field.length < MAX_FIELD_SLOTS)
-          const selected = card.isEssence && essenceTargetingMode
+            isMyTurn && (card.isEssence || me.field.length < MAX_FIELD_SLOTS)
           return (
             <HandCard
               key={card.instanceId}
               card={card}
-              disabled={!playable}
-              isSelected={selected}
-              onClick={() => handleHandCardClick(card.instanceId, card.isEssence)}
+              isMyTurn={playable}
+              onPlayMonster={(id) => handleHandCardClick(id, false)}
+              onEssenceSelect={(id) => handleHandCardClick(id, true)}
             />
           )
         })}
       </div>
-
-      {/* Game-over overlay */}
-      {gameOver && <GameOverOverlay result={gameOver} myIndex={meIndex} />}
     </main>
   )
 }
+
+function noop() {}
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
@@ -256,10 +304,83 @@ function FieldRow({ children }: { children: React.ReactNode }) {
   )
 }
 
-function BarrierLine() {
+/**
+ * Keeps the most recently seen monster rendered for 300ms after it's been
+ * removed from the authoritative field, so the death animation can play
+ * before the slot unmounts. Also forwards lunge / selection state down.
+ */
+function FieldSlotWrapper({
+  monster,
+  isMySlot,
+  isValidTarget,
+  onMonsterClick,
+  lungeState,
+  lungeDirection,
+  isSelectedId,
+}: {
+  monster: MonsterSlotData | null
+  isMySlot: boolean
+  isValidTarget: (mon: MonsterSlotData) => boolean
+  onMonsterClick: (instanceId: string) => void
+  lungeState: { attackerId: string; key: number } | null
+  lungeDirection: 'up' | 'down'
+  isSelectedId: string | null
+}) {
+  // `cachedMonster` holds a snapshot of the last live monster so we can keep
+  // painting it while the exit animation plays after `monster` goes null.
+  const [cachedMonster, setCachedMonster] = useState<MonsterSlotData | null>(monster)
+  const [isDying, setIsDying] = useState(false)
+
+  useEffect(() => {
+    if (monster) {
+      setCachedMonster(monster)
+      setIsDying(false)
+      return
+    }
+    // Monster just disappeared — play the death animation on the cached copy.
+    if (cachedMonster && !isDying) {
+      setIsDying(true)
+      const timeoutId = window.setTimeout(() => {
+        setIsDying(false)
+        setCachedMonster(null)
+      }, 300)
+      return () => window.clearTimeout(timeoutId)
+    }
+  }, [monster, cachedMonster, isDying])
+
+  const toRender = monster ?? cachedMonster
+  if (!toRender) return <MonsterSlot monster={null} isMySlot={isMySlot} isSelected={false} isValidTarget={false} onClick={noop} />
+
+  const lungeKey =
+    lungeState && lungeState.attackerId === toRender.instanceId ? lungeState.key : 0
+
+  const selected = isSelectedId === toRender.instanceId && !isDying
+  const validTarget = monster ? isValidTarget(monster) : false
+
+  return (
+    <MonsterSlot
+      monster={toRender}
+      isMySlot={isMySlot}
+      isSelected={selected}
+      isValidTarget={validTarget}
+      onClick={() => onMonsterClick(toRender.instanceId)}
+      isDying={isDying}
+      lungeKey={lungeKey}
+      lungeDirection={lungeDirection}
+    />
+  )
+}
+
+/**
+ * Barrier phase indicator. Idle-pulses opacity 0.6 ↔ 1.0 on a 1.5s loop;
+ * when `exiting` is true the whole strip collapses out over 500ms and is
+ * unmounted by the parent at the end.
+ */
+function BarrierLine({ exiting }: { exiting: boolean }) {
   return (
     <div
       aria-label="Barrier phase"
+      className={exiting ? 'animate-barrier-exit' : ''}
       style={{
         position: 'relative',
         padding: '6px 0',
@@ -268,92 +389,51 @@ function BarrierLine() {
         borderBottom: '1px dashed var(--color-accent)',
         background:
           'linear-gradient(90deg, transparent, rgba(192, 57, 43, 0.14), transparent)',
+        overflow: 'hidden',
       }}
     >
       <span
+        className={exiting ? '' : 'animate-barrier-pulse'}
         style={{
           fontFamily: 'var(--font-display)',
           fontSize: '0.55rem',
           color: 'var(--color-accent)',
           letterSpacing: 1,
-          animation: 'barrierPulse 1.6s ease-in-out infinite',
+          opacity: exiting ? 1 : 0.6,
+          display: 'inline-block',
         }}
       >
         TURN 1 — NO ATTACKS
       </span>
-      <style>{`
-        @keyframes barrierPulse {
-          0%, 100% { opacity: 0.55; }
-          50% { opacity: 1; }
-        }
-      `}</style>
     </div>
   )
 }
 
-function GameOverOverlay({
-  result,
-  myIndex,
-}: {
-  result: GameOverResult
-  myIndex: 0 | 1
-}) {
-  let title = 'DRAW'
-  if (result.winner === 'draw') {
-    title = 'DRAW'
-  } else if (result.winner === myIndex) {
-    title = 'VICTORY'
-  } else {
-    title = 'DEFEAT'
-  }
-
-  return (
-    <div
-      role="alertdialog"
-      aria-label="Game over"
-      style={{
-        position: 'absolute',
-        inset: 0,
-        background: 'rgba(10, 8, 6, 0.82)',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        zIndex: 50,
-      }}
-    >
-      <div
-        style={{
-          padding: '28px 40px',
-          border: '2px solid var(--color-gold)',
-          background: 'var(--color-surface)',
-          borderRadius: 8,
-          textAlign: 'center',
-          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.7)',
-        }}
-      >
-        <h1
-          style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: '1.2rem',
-            color: 'var(--color-gold)',
-            margin: 0,
-          }}
-        >
-          {title}
-        </h1>
-        <p
-          style={{
-            marginTop: 10,
-            fontFamily: 'var(--font-body)',
-            fontSize: '0.85rem',
-            color: 'var(--color-muted)',
-          }}
-        >
-          {result.winner === 'draw'
-            ? 'Both players finished simultaneously.'
-            : `Player ${result.winner} wins.`}
-        </p>
-      </div>
-    </div>
+/**
+ * Drives the enter/exit lifecycle of the barrier strip. Returns whether the
+ * node should be in the DOM and, if so, whether it's currently playing the
+ * exit animation.
+ */
+function useBarrierVisibility(phase: GamePhase): { render: boolean; exiting: boolean } {
+  const [state, setState] = useState<'present' | 'exiting' | 'gone'>(
+    phase === 'barrier' ? 'present' : 'gone',
   )
+
+  useEffect(() => {
+    if (phase === 'barrier') {
+      setState('present')
+      return
+    }
+    // phase === 'active'
+    if (state === 'present') {
+      setState('exiting')
+      const timeoutId = window.setTimeout(() => setState('gone'), 500)
+      return () => window.clearTimeout(timeoutId)
+    }
+  }, [phase, state])
+
+  return {
+    render: state !== 'gone',
+    exiting: state === 'exiting',
+  }
 }

@@ -11,7 +11,7 @@
  * GameRoom's stored socket.id stays valid) is out of scope for this chunk.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 
 import { socket } from '../../lib/socket'
 import { GameBoard } from './GameBoard'
@@ -147,6 +147,110 @@ export default function GamePage() {
         onEndTurn={onEndTurn}
       />
       {errorMessage && <ErrorToast message={errorMessage} />}
+      {gameOver && (
+        <GameOverOverlay
+          result={gameOver}
+          myPlayerIndex={myPlayerIndex === 1 ? 1 : 0}
+        />
+      )}
+    </div>
+  )
+}
+
+/**
+ * Full-screen end-of-match banner. Shows Victory / Defeat / Draw depending on
+ * the local player's perspective; the "Back to Home" button fades in 800ms
+ * after mount so the result can land before we offer an exit.
+ */
+function GameOverOverlay({
+  result,
+  myPlayerIndex,
+}: {
+  result: GameOverResult
+  myPlayerIndex: 0 | 1
+}) {
+  const navigate = useNavigate()
+  const [showButton, setShowButton] = useState(false)
+
+  useEffect(() => {
+    const id = window.setTimeout(() => setShowButton(true), 800)
+    return () => window.clearTimeout(id)
+  }, [])
+
+  let title = 'Draw 🤝'
+  let titleColor = 'var(--color-gold)'
+  if (result.winner === 'draw') {
+    title = 'Draw 🤝'
+    titleColor = 'var(--color-gold)'
+  } else if (result.winner === myPlayerIndex) {
+    title = 'Victory 🎉'
+    titleColor = 'var(--color-gold)'
+  } else {
+    title = 'Defeat 💀'
+    titleColor = 'var(--color-accent)'
+  }
+
+  // Inline opacity/transform initial states are intentionally omitted. The
+  // keyframes start from opacity:0 / scale(0.8) and the animation's first
+  // paint applies that state before the browser renders. For users with
+  // `prefers-reduced-motion: reduce`, the animation classes are a no-op (the
+  // rules live inside a `@media (prefers-reduced-motion: no-preference)`
+  // block) and the overlay simply appears fully opaque at its natural size.
+  return (
+    <div
+      role="alertdialog"
+      aria-label="Game over"
+      className="animate-gameover-fade"
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(10, 8, 6, 0.82)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 40,
+        zIndex: 200,
+        backdropFilter: 'blur(2px)',
+      }}
+    >
+      <h1
+        className="animate-gameover-pop"
+        style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: 'clamp(2.4rem, 9vw, 5.5rem)',
+          color: titleColor,
+          margin: 0,
+          letterSpacing: 4,
+          textShadow:
+            '0 0 24px rgba(0, 0, 0, 0.8), 0 0 44px rgba(212, 150, 10, 0.35)',
+        }}
+      >
+        {title}
+      </h1>
+
+      {showButton && (
+        <button
+          type="button"
+          onClick={() => navigate('/home')}
+          className="animate-gameover-button-in"
+          style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '0.7rem',
+            color: '#1a1612',
+            background: 'var(--color-gold)',
+            border: '2px solid rgba(0, 0, 0, 0.45)',
+            borderRadius: 4,
+            padding: '14px 28px',
+            cursor: 'pointer',
+            letterSpacing: 2,
+            boxShadow:
+              '3px 3px 0 rgba(0, 0, 0, 0.55), 0 0 30px rgba(212, 150, 10, 0.4)',
+          }}
+        >
+          BACK TO HOME
+        </button>
+      )}
     </div>
   )
 }
