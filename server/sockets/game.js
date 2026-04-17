@@ -53,6 +53,8 @@ function getUserIdFromSocket(socket) {
 const rooms = new Map()
 /** @type {Map<string, string>} */
 const socketToRoom = new Map()
+/** @type {Map<string, Date>} */
+const roomStartTimes = new Map()
 
 /**
  * Pending disconnect timers, keyed by roomId. When a player's socket drops
@@ -138,8 +140,43 @@ function destroyRoom(roomId) {
     clearTimeout(pendingTimer)
     disconnectTimers.delete(roomId)
   }
+  roomStartTimes.delete(roomId)
   rooms.delete(roomId)
   log('roomDestroyed', { roomId })
+}
+
+function toMySqlDateTime(value) {
+  return value.toISOString().slice(0, 19).replace('T', ' ')
+}
+
+async function persistGameResult(roomId, winner) {
+  const room = rooms.get(roomId)
+  if (!room) return
+  if (winner === 'draw') {
+    log('gameResult:skipDraw', { roomId })
+    return
+  }
+
+  const winnerPlayer = room.state.players[winner]
+  const loserPlayer = room.state.players[winner === 0 ? 1 : 0]
+  const winnerId = winnerPlayer.userId
+  const loserId = loserPlayer.userId
+
+  if (!Number.isInteger(winnerId) || !Number.isInteger(loserId)) {
+    log('gameResult:skipMissingUserIds', { roomId, winnerId, loserId })
+    return
+  }
+
+  const gameStart = roomStartTimes.get(roomId) ?? new Date()
+  try {
+    await query(
+      'INSERT INTO game_results (room_id, winner_id, loser_id, game_start) VALUES (?, ?, ?, ?)',
+      [roomId, winnerId, loserId, toMySqlDateTime(gameStart)],
+    )
+    log('gameResult:saved', { roomId, winnerId, loserId, gameStart })
+  } catch (err) {
+    log('gameResult:saveError', { roomId, error: err instanceof Error ? err.message : err })
+  }
 }
 
 /**
@@ -208,6 +245,7 @@ export async function startGame(io, roomId, socketIds) {
   // userIds are the stable key for reconnect rebinding via `game:join`.
   room.initGame(id0, id1, [deck0, deck1], [userId0, userId1])
   rooms.set(roomId, room)
+  roomStartTimes.set(roomId, new Date())
   socketToRoom.set(id0, roomId)
   socketToRoom.set(id1, roomId)
 
@@ -346,6 +384,7 @@ export function registerGameHandlers(io, socket) {
       io.to(roomId).emit('game:stateUpdate', room.state)
       if (over?.over) {
         io.to(roomId).emit('game:over', { winner: over.winner })
+        void persistGameResult(roomId, over.winner)
         destroyRoom(roomId)
       }
     })
@@ -366,6 +405,7 @@ export function registerGameHandlers(io, socket) {
       io.to(roomId).emit('game:stateUpdate', room.state)
       if (result?.over) {
         io.to(roomId).emit('game:over', { winner: result.winner })
+        void persistGameResult(roomId, result.winner)
         destroyRoom(roomId)
       }
     })
@@ -407,6 +447,7 @@ export function registerGameHandlers(io, socket) {
       if (live.state.players[disconnectedIndex].id) return
 
       io.to(roomId).emit('game:over', { winner: winnerIndex })
+      void persistGameResult(roomId, winnerIndex)
       log('disconnect:timeout', {
         roomId,
         disconnectedIndex,
