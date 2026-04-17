@@ -282,6 +282,12 @@ export default class GameRoom {
     const result = resolveAttack(attacker, defender)
     attacker.attacksUsed += 1
 
+    // Stamp IDs on the result so clients can target their attack animations
+    // without tracking local "pending attacker" state.
+    result.targetType = 'monster'
+    result.attackerInstanceId = attacker.instanceId
+    result.defenderInstanceId = defender.instanceId
+
     if (result.defenderDied && !result.attackerDied) {
       result.essenceAwarded = attackerOwner
       this._awardEssence(attackerOwner)
@@ -348,10 +354,26 @@ export default class GameRoom {
     attacker.attacksUsed += 1
 
     this._log(
-      `Player ${attackerOwner} attacked the opponent for ${damage}.`,
+      `Player ${attackerOwner} attacked the opponent for ${damage} ` +
+        `(roll ${roll}).`,
     )
 
-    return this._checkGameOver()
+    // Surface the same combat telemetry we emit for monster-vs-monster so
+    // the client can play the lunge/roll/damage animations on avatar hits.
+    const combat = {
+      attackRoll: roll,
+      defenseRoll: 0,
+      finalAttack: damage,
+      finalDefense: 0,
+      attackerDied: false,
+      defenderDied: false,
+      essenceAwarded: null,
+      targetType: 'player',
+      attackerInstanceId: attacker.instanceId,
+    }
+
+    const over = this._checkGameOver()
+    return { combat, over }
   }
 
   useEssence(playerIndex, targetMonsterInstanceId) {

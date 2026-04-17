@@ -38,6 +38,19 @@ export interface MonsterSlotProps {
   lungeKey?: number
   /** Direction of the lunge. Defaults to 'up' for local monsters. */
   lungeDirection?: 'up' | 'down'
+  /**
+   * Parent-provided key that, when non-zero, shows a floating "roll" badge
+   * above the card revealing what the ± roll modifier landed on for this
+   * combat event. Mounts fresh on every key change so the animation replays.
+   */
+  rollKey?: number
+  /** Numeric roll value to display. Null/undefined ⇒ no badge. */
+  rollValue?: number | null
+  /**
+   * 'attacker' ⇒ orange ATK-roll badge (this monster rolled its attack)
+   * 'defender' ⇒ blue DEF-roll badge (this monster rolled its defense)
+   */
+  rollVariant?: 'attacker' | 'defender'
 }
 
 // ─── Health bar colour thresholds ─────────────────────────────────────────────
@@ -83,6 +96,9 @@ export function MonsterSlot({
   isDying = false,
   lungeKey = 0,
   lungeDirection = 'up',
+  rollKey = 0,
+  rollValue = null,
+  rollVariant = 'attacker',
 }: MonsterSlotProps) {
   // ── Derived-from-prev animation triggers ────────────────────────────────────
   // `popKey` / `flashKey` change whenever the corresponding animation should
@@ -374,9 +390,11 @@ export function MonsterSlot({
 
             {/* Health bar (below the card) */}
             <div
+              aria-label={`${hp} of ${maxHp} HP`}
               style={{
+                position: 'relative',
                 marginTop: 4,
-                height: 8,
+                height: 12,
                 width: CARD_W,
                 background: 'rgba(0, 0, 0, 0.55)',
                 border: '1px solid rgba(255, 255, 255, 0.08)',
@@ -392,10 +410,64 @@ export function MonsterSlot({
                   transition: 'width 180ms ease-out, background 180ms linear',
                 }}
               />
+              <span
+                aria-hidden
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '0.36rem',
+                  letterSpacing: 0.3,
+                  color: '#fff',
+                  textShadow:
+                    '1px 1px 0 rgba(0, 0, 0, 0.9), 0 0 4px rgba(0, 0, 0, 0.8)',
+                  pointerEvents: 'none',
+                  lineHeight: 1,
+                }}
+              >
+                {hp} / {maxHp}
+              </span>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Floating roll badge — shows the ± value this monster just rolled
+          for its attack (orange) or defense (blue). Rendered outside the
+          death/lunge wrappers so it reads as screen-anchored text. */}
+      {rollKey > 0 && rollValue !== null && (
+        <span
+          key={`roll-${rollKey}`}
+          aria-hidden
+          className="animate-roll-badge"
+          style={{
+            position: 'absolute',
+            top: -6,
+            left: '50%',
+            transform: 'translate(-50%, 0)',
+            padding: '3px 7px',
+            borderRadius: 3,
+            fontFamily: 'var(--font-display)',
+            fontSize: '0.5rem',
+            letterSpacing: 0.5,
+            color: '#fff',
+            background:
+              rollVariant === 'attacker' ? '#d35400' : '#2471a3',
+            border: '1px solid rgba(0, 0, 0, 0.55)',
+            boxShadow:
+              '2px 2px 0 rgba(0, 0, 0, 0.55), 0 0 12px rgba(0, 0, 0, 0.5)',
+            pointerEvents: 'none',
+            zIndex: 6,
+            whiteSpace: 'nowrap',
+          }}
+        >
+          {rollVariant === 'attacker' ? 'ATK' : 'DEF'} ROLL{' '}
+          {rollValue >= 0 ? `+${rollValue}` : rollValue}
+        </span>
+      )}
 
       {/* Floating damage numbers — rendered outside the death/lunge/pop
           wrappers so the motion is always screen-relative, not compounded. */}

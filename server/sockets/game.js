@@ -334,11 +334,18 @@ export function registerGameHandlers(io, socket) {
   socket.on('game:attackPlayer', (payload = {}) => {
     const { attackerInstanceId } = payload
     guardAction(socket, (room, playerIndex) => {
-      const result = room.attackPlayer(playerIndex, attackerInstanceId)
+      const { combat, over } = room.attackPlayer(
+        playerIndex,
+        attackerInstanceId,
+      )
       const roomId = room.state.roomId
+      // Emit combat BEFORE stateUpdate so the client can capture the attacker
+      // context (lunge + roll badge + damage flash on the avatar) synchronously
+      // with the health change that the state update will apply.
+      io.to(roomId).emit('game:combatResult', combat)
       io.to(roomId).emit('game:stateUpdate', room.state)
-      if (result?.over) {
-        io.to(roomId).emit('game:over', { winner: result.winner })
+      if (over?.over) {
+        io.to(roomId).emit('game:over', { winner: over.winner })
         destroyRoom(roomId)
       }
     })

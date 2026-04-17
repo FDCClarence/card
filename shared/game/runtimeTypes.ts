@@ -108,6 +108,16 @@ export interface CombatResult {
   defenderDied: boolean
   /** Player index awarded an essence card, or null if none. */
   essenceAwarded: 0 | 1 | null
+  /**
+   * What was hit: another monster, or the opposing player's avatar. Emitted
+   * by the server on every `game:combatResult`. Optional for backwards
+   * compatibility with older payloads.
+   */
+  targetType?: 'monster' | 'player'
+  /** The monster that initiated the attack, for client-side lunge/roll FX. */
+  attackerInstanceId?: string
+  /** The monster that was hit — only set when `targetType === 'monster'`. */
+  defenderInstanceId?: string
 }
 
 // ─── Game-over payload ────────────────────────────────────────────────────────

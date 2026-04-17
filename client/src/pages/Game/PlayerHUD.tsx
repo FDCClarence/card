@@ -29,6 +29,12 @@ export interface PlayerHUDProps {
   isAttackTarget?: boolean
   /** Click handler used when `isAttackTarget` is true. */
   onAttackClick?: () => void
+  /**
+   * Signal from the board that this player's avatar just took damage. The
+   * `key` is monotonically increasing; a change triggers a red flash across
+   * the HUD and a floating "-N" damage number.
+   */
+  damageHit?: { damage: number; key: number } | null
 }
 
 export function PlayerHUD({
@@ -38,6 +44,7 @@ export function PlayerHUD({
   onEndTurn,
   isAttackTarget = false,
   onAttackClick,
+  damageHit = null,
 }: PlayerHUDProps) {
   const label = isMe ? 'You' : 'Opponent'
   const health = player.health
@@ -64,6 +71,25 @@ export function PlayerHUD({
 
   const attackable = isAttackTarget && !!onAttackClick
 
+  // Avatar-hit animation: remount a flash overlay + a floating -N number
+  // every time the parent bumps `damageHit.key`.
+  const [hitAnim, setHitAnim] = useState<{
+    damage: number
+    key: number
+  } | null>(null)
+  const lastHitKeyRef = useRef<number>(0)
+
+  useEffect(() => {
+    if (!damageHit) return
+    if (damageHit.key === lastHitKeyRef.current) return
+    lastHitKeyRef.current = damageHit.key
+    setHitAnim({ damage: damageHit.damage, key: damageHit.key })
+    const timeoutId = window.setTimeout(() => {
+      setHitAnim((curr) => (curr?.key === damageHit.key ? null : curr))
+    }, 650)
+    return () => window.clearTimeout(timeoutId)
+  }, [damageHit])
+
   return (
     <div
       onClick={attackable ? onAttackClick : undefined}
@@ -71,6 +97,7 @@ export function PlayerHUD({
       aria-label={attackable ? 'Attack opponent' : undefined}
       className="flex items-center gap-4 border-y border-white/5 bg-[var(--color-surface)]/70 px-4 py-3"
       style={{
+        position: 'relative',
         minHeight: 72,
         cursor: attackable ? 'crosshair' : 'default',
         outline: attackable ? '2px solid var(--color-accent)' : 'none',
@@ -81,6 +108,49 @@ export function PlayerHUD({
         transition: 'outline 0.15s ease, box-shadow 0.2s ease',
       }}
     >
+      {/* Avatar damage flash */}
+      {hitAnim && (
+        <div
+          key={`hud-flash-${hitAnim.key}`}
+          aria-hidden
+          className="animate-damage-flash"
+          style={{
+            position: 'absolute',
+            inset: 0,
+            pointerEvents: 'none',
+            boxShadow:
+              'inset 0 0 40px rgba(192, 57, 43, 0.75), 0 0 24px rgba(192, 57, 43, 0.6)',
+            background:
+              'linear-gradient(90deg, rgba(192, 57, 43, 0.2), rgba(192, 57, 43, 0.05), rgba(192, 57, 43, 0.2))',
+            opacity: 0,
+            zIndex: 4,
+          }}
+        />
+      )}
+      {/* Floating damage number over the HUD's center */}
+      {hitAnim && (
+        <span
+          key={`hud-dmg-${hitAnim.key}`}
+          aria-hidden
+          className="animate-damage-rise"
+          style={{
+            position: 'absolute',
+            top: 12,
+            left: '50%',
+            transform: 'translate(-50%, 0)',
+            fontFamily: 'var(--font-display)',
+            fontSize: '1rem',
+            color: '#ffdede',
+            textShadow:
+              '0 0 6px rgba(192, 57, 43, 1), 0 0 14px rgba(192, 57, 43, 0.85), 2px 2px 0 rgba(0, 0, 0, 0.8)',
+            pointerEvents: 'none',
+            zIndex: 5,
+            letterSpacing: 1,
+          }}
+        >
+          -{hitAnim.damage}
+        </span>
+      )}
       {/* Label + turn indicator */}
       <span
         style={{

@@ -15,7 +15,7 @@
  *   - Barrier exit: the barrier line animates out over 500ms when the phase
  *     transitions from 'barrier' → 'active'.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { HandCard } from './HandCard'
 import { MonsterSlot } from './MonsterSlot'
@@ -79,24 +79,62 @@ export function GameBoard({
   )
   const activeSelection = selectedStillOnField ? selectedAttackerInstanceId : null
 
-  // ── Attack lunge bookkeeping ───────────────────────────────────────────────
-  // Remember which monster the local player just committed to attack; when
-  // the authoritative combatResult arrives we tick the lunge key on that
-  // MonsterSlot to play the animation.
-  const pendingAttackerRef = useRef<string | null>(null)
+  // ── Attack lunge + roll bookkeeping ────────────────────────────────────────
+  // Both monster-vs-monster and monster-vs-player combat now carry the
+  // attacker instanceId on the CombatResult payload (see shared/runtimeTypes).
+  // We translate each incoming combat into:
+  //   - a lunge animation on the attacker's MonsterSlot
+  //   - a floating "roll" badge on the attacker (and on the defender monster,
+  //     when applicable) so the player can see what the ± roll landed on
+  //   - for avatar attacks, a damage flash + floating damage number on the
+  //     opposing HUD (routed via avatarHitState below)
   const [lungeState, setLungeState] = useState<{
     attackerId: string
+    key: number
+  } | null>(null)
+  const [rollBadgeState, setRollBadgeState] = useState<{
+    attackerId: string | null
+    attackerRoll: number | null
+    defenderId: string | null
+    defenderRoll: number | null
+    key: number
+  } | null>(null)
+  const [avatarHitState, setAvatarHitState] = useState<{
+    damage: number
     key: number
   } | null>(null)
 
   useEffect(() => {
     if (!lastCombat) return
-    const attackerId = pendingAttackerRef.current
-    if (!attackerId) return
-    pendingAttackerRef.current = null
-    setLungeState({ attackerId, key: Date.now() })
-    const timeoutId = window.setTimeout(() => setLungeState(null), 220)
-    return () => window.clearTimeout(timeoutId)
+    const key = Date.now()
+    const attackerId = lastCombat.attackerInstanceId ?? null
+    const defenderId =
+      lastCombat.targetType === 'monster'
+        ? lastCombat.defenderInstanceId ?? null
+        : null
+
+    if (attackerId) {
+      setLungeState({ attackerId, key })
+    }
+    setRollBadgeState({
+      attackerId,
+      attackerRoll: attackerId ? lastCombat.attackRoll : null,
+      defenderId,
+      defenderRoll: defenderId ? lastCombat.defenseRoll : null,
+      key,
+    })
+    if (lastCombat.targetType === 'player') {
+      setAvatarHitState({ damage: lastCombat.finalAttack, key })
+    }
+
+    const lungeTimeout = window.setTimeout(() => setLungeState(null), 220)
+    const rollTimeout = window.setTimeout(() => setRollBadgeState(null), 900)
+    const avatarTimeout = window.setTimeout(() => setAvatarHitState(null), 900)
+    return () => {
+      window.clearTimeout(lungeTimeout)
+      window.clearTimeout(rollTimeout)
+      window.clearTimeout(avatarTimeout)
+    }
   }, [lastCombat])
 
   // ── Barrier exit animation ────────────────────────────────────────────────
@@ -127,7 +165,6 @@ export function GameBoard({
   const handleOpponentMonsterClick = useCallback(
     (instanceId: string) => {
       if (!isMyTurn || !activeSelection) return
-      pendingAttackerRef.current = activeSelection
       onAttackMonster(activeSelection, instanceId)
       clearSelection()
     },
@@ -138,7 +175,6 @@ export function GameBoard({
     if (!isMyTurn || !activeSelection) return
     if (opp.field.length > 0) return
     if (state.phase !== 'active') return
-    pendingAttackerRef.current = activeSelection
     onAttackPlayer(activeSelection)
     clearSelection()
   }, [
@@ -200,26 +236,27 @@ export function GameBoard({
         onEndTurn={noop}
         isAttackTarget={opponentCanBeAttacked}
         onAttackClick={opponentCanBeAttacked ? handleOpponentAvatarClick : undefined}
+        damageHit={avatarHitState}
       />
 
-      {/* Opponent field — rotated so cards face the local player */}
+      {/* Opponent field — cards render face-up (readable from the local
+          player's seat); the lunge animation on an opponent-initiated attack
+          is driven downward toward our side of the board. */}
       <FieldRow>
         {Array.from({ length: MAX_FIELD_SLOTS }, (_, i) => {
           const m = opp.field[i] ?? null
           return (
-            <div key={i} style={{ transform: 'rotate(180deg)' }}>
-              <FieldSlotWrapper
-                monster={m}
-                isMySlot={false}
-                isValidTarget={(mon) => isOpponentMonsterValidTarget(mon.isSummoning)}
-                onMonsterClick={handleOpponentMonsterClick}
-                // Opponent monsters never receive an attacker-lunge from our
-                // perspective (CombatResult doesn't carry attacker IDs).
-                lungeState={null}
-                lungeDirection="down"
-                isSelectedId={null}
-              />
-            </div>
+            <FieldSlotWrapper
+              key={i}
+              monster={m}
+              isMySlot={false}
+              isValidTarget={(mon) => isOpponentMonsterValidTarget(mon.isSummoning)}
+              onMonsterClick={handleOpponentMonsterClick}
+              lungeState={lungeState}
+              lungeDirection="down"
+              isSelectedId={null}
+              rollBadgeState={rollBadgeState}
+            />
           )
         })}
       </FieldRow>
@@ -241,6 +278,7 @@ export function GameBoard({
               lungeState={lungeState}
               lungeDirection="up"
               isSelectedId={activeSelection}
+              rollBadgeState={rollBadgeState}
             />
           )
         })}
@@ -317,6 +355,7 @@ function FieldSlotWrapper({
   lungeState,
   lungeDirection,
   isSelectedId,
+  rollBadgeState,
 }: {
   monster: MonsterSlotData | null
   isMySlot: boolean
@@ -325,6 +364,13 @@ function FieldSlotWrapper({
   lungeState: { attackerId: string; key: number } | null
   lungeDirection: 'up' | 'down'
   isSelectedId: string | null
+  rollBadgeState: {
+    attackerId: string | null
+    attackerRoll: number | null
+    defenderId: string | null
+    defenderRoll: number | null
+    key: number
+  } | null
 }) {
   // `cachedMonster` holds a snapshot of the last live monster so we can keep
   // painting it while the exit animation plays after `monster` goes null.
@@ -354,6 +400,30 @@ function FieldSlotWrapper({
   const lungeKey =
     lungeState && lungeState.attackerId === toRender.instanceId ? lungeState.key : 0
 
+  // Resolve which roll badge (if any) belongs to this monster for the current
+  // combat event. A single combat can tag both the attacker and the defender
+  // with their respective rolls.
+  let rollValue: number | null = null
+  let rollKey = 0
+  let rollVariant: 'attacker' | 'defender' = 'attacker'
+  if (rollBadgeState) {
+    if (
+      rollBadgeState.attackerId === toRender.instanceId &&
+      rollBadgeState.attackerRoll !== null
+    ) {
+      rollValue = rollBadgeState.attackerRoll
+      rollKey = rollBadgeState.key
+      rollVariant = 'attacker'
+    } else if (
+      rollBadgeState.defenderId === toRender.instanceId &&
+      rollBadgeState.defenderRoll !== null
+    ) {
+      rollValue = rollBadgeState.defenderRoll
+      rollKey = rollBadgeState.key
+      rollVariant = 'defender'
+    }
+  }
+
   const selected = isSelectedId === toRender.instanceId && !isDying
   const validTarget = monster ? isValidTarget(monster) : false
 
@@ -367,6 +437,9 @@ function FieldSlotWrapper({
       isDying={isDying}
       lungeKey={lungeKey}
       lungeDirection={lungeDirection}
+      rollKey={rollKey}
+      rollValue={rollValue}
+      rollVariant={rollVariant}
     />
   )
 }

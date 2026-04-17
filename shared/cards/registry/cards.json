@@ -13,7 +13,7 @@
     },
     "effects": ["shield_allies", "golem_death_nova"],
     "tags": ["tanky", "summon"],
-    "max_copies": 2
+    "max_copies": 5
   },
   {
     "id": "card_002",
@@ -29,7 +29,7 @@
     },
     "effects": ["burn_on_attack"],
     "tags": ["aggressive", "elemental"],
-    "max_copies": 2
+    "max_copies": 5
   },
   {
     "id": "card_003",
@@ -45,7 +45,7 @@
     },
     "effects": ["heal_weakest_ally"],
     "tags": ["support", "nature"],
-    "max_copies": 2
+    "max_copies": 5
   },
   {
     "id": "card_004",
@@ -61,7 +61,7 @@
     },
     "effects": ["meteor_on_summon"],
     "tags": ["magic", "aoe"],
-    "max_copies": 2
+    "max_copies": 5
   },
   {
     "id": "card_005",
@@ -77,6 +77,6 @@
     },
     "effects": ["rage_on_hit"],
     "tags": ["bruiser", "scaling"],
-    "max_copies": 2
+    "max_copies": 5
   }
 ]

@@ -106,6 +106,16 @@
   100% { opacity: 0; transform: translate(-50%, -44px); }
 }
 
+/* One-shot roll badge: pops in slightly larger than 1×, holds, then fades
+   upward. Used for the ± roll reveal that accompanies every attack. */
+@keyframes rollBadgeFloat {
+  0%   { opacity: 0; transform: translate(-50%, 6px)  scale(0.7); }
+  18%  { opacity: 1; transform: translate(-50%, -8px) scale(1.1); }
+  35%  { opacity: 1; transform: translate(-50%, -12px) scale(1);   }
+  80%  { opacity: 1; transform: translate(-50%, -26px) scale(1);   }
+  100% { opacity: 0; transform: translate(-50%, -40px) scale(0.95); }
+}
+
 @keyframes monsterDeath {
   0%   { opacity: 1; transform: scale(1);   filter: saturate(1);   }
   100% { opacity: 0; transform: scale(0.6); filter: saturate(0.3); }
@@ -193,6 +203,7 @@
   .animate-lunge-down         { animation: attackLungeDown 200ms ease-out; }
   .animate-damage-flash       { animation: damageFlash 400ms ease-in-out; }
   .animate-damage-rise        { animation: damageRise 600ms ease-out forwards; }
+  .animate-roll-badge         { animation: rollBadgeFloat 900ms ease-out forwards; }
   .animate-monster-death      { animation: monsterDeath 300ms ease-in forwards; }
   .animate-barrier-pulse      { animation: barrierPulseIdle 1.5s ease-in-out infinite; }
   .animate-barrier-exit       { animation: barrierExit 500ms ease-in forwards; }

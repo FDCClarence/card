@@ -6,7 +6,7 @@ import { apiFetch } from '../../lib/api'
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 export const MAX_TOTAL = 20
-export const MAX_COPIES = 2
+export const MAX_COPIES = 5
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
