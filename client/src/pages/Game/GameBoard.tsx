@@ -317,6 +317,7 @@ export function GameBoard({
               key={card.instanceId}
               card={card}
               isMyTurn={playable}
+              summoningPenalty={me.summonedThisTurn}
               onPlayMonster={(id) => handleHandCardClick(id, false)}
               onEssenceSelect={(id) => handleHandCardClick(id, true)}
             />

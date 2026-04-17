@@ -55,7 +55,7 @@
     "description": "Calls a meteor from the heavens on summon. Dramatic.",
     "stats": {
       "health": 5,
-      "attack": 5,
+      "attack": 50,
       "defense": 2,
       "rollModifier": 3
     },
