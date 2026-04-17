@@ -3,22 +3,23 @@ import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 
 import { AuthLayout } from './AuthLayout'
+import { Spinner } from '../../components/UI/Spinner'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3001'
 
 type LoginErrors = {
-  email?: string
+  username?: string
   password?: string
   form?: string
 }
 
-function isValidEmail(email: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
-}
+const inputClass =
+  'w-full border border-white/15 bg-[var(--color-card)] px-3 py-2.5 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)] focus:ring-0'
+const labelClass = 'mb-1 block text-[10px] text-[var(--color-muted)] uppercase tracking-widest'
 
 export function LoginPage() {
   const navigate = useNavigate()
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [errors, setErrors] = useState<LoginErrors>({})
   const [submitting, setSubmitting] = useState(false)
@@ -27,8 +28,8 @@ export function LoginPage() {
 
   function validate() {
     const nextErrors: LoginErrors = {}
-    if (!isValidEmail(email.trim())) {
-      nextErrors.email = 'Please enter a valid email.'
+    if (username.trim().length < 2) {
+      nextErrors.username = 'Username must be at least 2 characters.'
     }
     if (password.length < 8) {
       nextErrors.password = 'Password must be at least 8 characters.'
@@ -48,7 +49,7 @@ export function LoginPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: email.trim(),
+          username: username.trim(),
           password,
         }),
       })
@@ -80,25 +81,23 @@ export function LoginPage() {
     <AuthLayout title="Welcome Back" subtitle="Log in to continue your card adventure.">
       <form className="space-y-4" onSubmit={handleSubmit} noValidate>
         <div>
-          <label className="mb-1 block text-sm font-semibold text-[var(--color-text)]" htmlFor="email">
-            Email
+          <label className={labelClass} htmlFor="username">
+            Username
           </label>
           <input
-            id="email"
-            type="email"
-            autoComplete="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-xl border border-white/15 bg-[var(--color-card)] px-3 py-2.5 text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/50"
+            id="username"
+            type="text"
+            autoComplete="username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className={inputClass}
+            style={{ borderRadius: '4px' }}
           />
-          {errors.email ? <p className="mt-1 text-xs text-red-400">{errors.email}</p> : null}
+          {errors.username ? <p className="mt-1 text-xs text-red-400">{errors.username}</p> : null}
         </div>
 
         <div>
-          <label
-            className="mb-1 block text-sm font-semibold text-[var(--color-text)]"
-            htmlFor="password"
-          >
+          <label className={labelClass} htmlFor="password">
             Password
           </label>
           <input
@@ -107,7 +106,8 @@ export function LoginPage() {
             autoComplete="current-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-xl border border-white/15 bg-[var(--color-card)] px-3 py-2.5 text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/50"
+            className={inputClass}
+            style={{ borderRadius: '4px' }}
           />
           {errors.password ? <p className="mt-1 text-xs text-red-400">{errors.password}</p> : null}
         </div>
@@ -117,14 +117,27 @@ export function LoginPage() {
         <button
           type="submit"
           disabled={!canSubmit}
-          className="mt-2 w-full rounded-xl bg-[var(--color-accent)] px-4 py-2.5 font-bold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+          className="mt-2 flex w-full items-center justify-center gap-2 bg-[var(--color-accent)] px-4 py-3 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-70"
+          style={{
+            fontFamily: 'var(--font-display)',
+            borderRadius: '4px',
+            boxShadow: '3px 3px 0 rgba(0,0,0,0.4)',
+            letterSpacing: 0,
+          }}
         >
-          {submitting ? 'Logging in...' : 'Login'}
+          {submitting ? (
+            <>
+              <Spinner size="sm" className="text-white" />
+              Logging in...
+            </>
+          ) : (
+            'Login'
+          )}
         </button>
 
-        <p className="pt-1 text-center text-sm text-[var(--color-muted)]">
+        <p className="pt-1 text-center text-xs text-[var(--color-muted)]">
           New here?{' '}
-          <Link className="font-semibold text-[var(--color-accent)] hover:brightness-110" to="/register">
+          <Link className="font-semibold text-[var(--color-accent)]" to="/register">
             Create an account
           </Link>
         </p>

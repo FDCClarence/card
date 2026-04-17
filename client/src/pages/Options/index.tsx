@@ -2,6 +2,7 @@ import type { FormEvent } from 'react'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
+import { Spinner } from '../../components/UI/Spinner'
 import { useToast } from '../../context/ToastContext'
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3001'
@@ -17,44 +18,66 @@ function authHeaders() {
 export default function OptionsPage() {
   const navigate = useNavigate()
   const { addToast } = useToast()
+  const storedUser = (() => {
+    try {
+      return JSON.parse(localStorage.getItem('authUser') ?? '{}') as { username?: string; email?: string }
+    } catch {
+      return {} as { username?: string; email?: string }
+    }
+  })()
 
-  const [username, setUsername] = useState('')
+  const [username, setUsername] = useState(storedUser.username ?? '')
+  const [email] = useState(storedUser.email ?? '')
   const [oldPassword, setOldPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   // Inline validation errors (field-level)
   const [usernameError, setUsernameError] = useState<string | null>(null)
   const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [savingUsername, setSavingUsername] = useState(false)
+  const [savingPassword, setSavingPassword] = useState(false)
 
   async function handleUsernameSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (savingUsername) return
     setUsernameError(null)
     if (username.trim().length < 2) {
       setUsernameError('Username must be at least 2 characters.')
       return
     }
 
-    const response = await fetch(`${API_BASE}/api/user/username`, {
-      method: 'PATCH',
-      headers: authHeaders(),
-      body: JSON.stringify({ username: username.trim() }),
-    })
-    const payload = (await response.json()) as { error?: string; user?: unknown }
+    setSavingUsername(true)
+    try {
+      const response = await fetch(`${API_BASE}/api/user/username`, {
+        method: 'PATCH',
+        headers: authHeaders(),
+        body: JSON.stringify({ username: username.trim() }),
+      })
+      const payload = (await response.json()) as { error?: string; user?: unknown }
 
-    if (!response.ok) {
-      addToast(payload.error ?? 'Failed to save username.', 'error')
-      return
-    }
+      if (!response.ok) {
+        addToast(payload.error ?? 'Failed to save username.', 'error')
+        return
+      }
 
-    if (payload.user) {
-      localStorage.setItem('authUser', JSON.stringify(payload.user))
+      if (payload.user) {
+        localStorage.setItem('authUser', JSON.stringify(payload.user))
+      }
+      if (payload.user) {
+        const updated = payload.user as { username?: string; email?: string }
+        setUsername(updated.username ?? '')
+      }
+      addToast('Username updated!', 'success')
+    } catch {
+      addToast('Unable to reach the server. Try again in a moment.', 'error')
+    } finally {
+      setSavingUsername(false)
     }
-    setUsername('')
-    addToast('Username updated!', 'success')
   }
 
   async function handlePasswordSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (savingPassword) return
     setPasswordError(null)
     if (newPassword.length < 8) {
       setPasswordError('New password must be at least 8 characters.')
@@ -65,22 +88,29 @@ export default function OptionsPage() {
       return
     }
 
-    const response = await fetch(`${API_BASE}/api/user/password`, {
-      method: 'PATCH',
-      headers: authHeaders(),
-      body: JSON.stringify({ oldPassword, newPassword }),
-    })
-    const payload = (await response.json()) as { error?: string }
+    setSavingPassword(true)
+    try {
+      const response = await fetch(`${API_BASE}/api/user/password`, {
+        method: 'PATCH',
+        headers: authHeaders(),
+        body: JSON.stringify({ oldPassword, newPassword }),
+      })
+      const payload = (await response.json()) as { error?: string }
 
-    if (!response.ok) {
-      addToast(payload.error ?? 'Failed to update password.', 'error')
-      return
+      if (!response.ok) {
+        addToast(payload.error ?? 'Failed to update password.', 'error')
+        return
+      }
+
+      setOldPassword('')
+      setNewPassword('')
+      setConfirmPassword('')
+      addToast('Password updated!', 'success')
+    } catch {
+      addToast('Unable to reach the server. Try again in a moment.', 'error')
+    } finally {
+      setSavingPassword(false)
     }
-
-    setOldPassword('')
-    setNewPassword('')
-    setConfirmPassword('')
-    addToast('Password updated!', 'success')
   }
 
   const inputClass =
@@ -106,18 +136,31 @@ export default function OptionsPage() {
         <section className="rounded-2xl border border-white/10 bg-[var(--color-surface)] p-6">
           <h2 className="text-xl font-bold">Change Username</h2>
           <form className="mt-4 space-y-3" onSubmit={handleUsernameSubmit}>
+            <input type="email" value={email} readOnly disabled className={`${inputClass} cursor-not-allowed opacity-60`} />
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="New username"
               className={inputClass}
+              disabled={savingUsername}
             />
             {usernameError ? (
               <p className="text-sm text-red-400">{usernameError}</p>
             ) : null}
-            <button type="submit" className={btnClass}>
-              Save
+            <button
+              type="submit"
+              className={`${btnClass} flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-70`}
+              disabled={savingUsername}
+            >
+              {savingUsername ? (
+                <>
+                  <Spinner size="sm" className="text-white" />
+                  Saving...
+                </>
+              ) : (
+                'Save'
+              )}
             </button>
           </form>
         </section>
@@ -131,6 +174,7 @@ export default function OptionsPage() {
               onChange={(e) => setOldPassword(e.target.value)}
               placeholder="Current password"
               className={inputClass}
+              disabled={savingPassword}
             />
             <input
               type="password"
@@ -138,6 +182,7 @@ export default function OptionsPage() {
               onChange={(e) => setNewPassword(e.target.value)}
               placeholder="New password"
               className={inputClass}
+              disabled={savingPassword}
             />
             <input
               type="password"
@@ -145,12 +190,24 @@ export default function OptionsPage() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirm new password"
               className={inputClass}
+              disabled={savingPassword}
             />
             {passwordError ? (
               <p className="text-sm text-red-400">{passwordError}</p>
             ) : null}
-            <button type="submit" className={btnClass}>
-              Save
+            <button
+              type="submit"
+              className={`${btnClass} flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:opacity-70`}
+              disabled={savingPassword}
+            >
+              {savingPassword ? (
+                <>
+                  <Spinner size="sm" className="text-white" />
+                  Saving...
+                </>
+              ) : (
+                'Save'
+              )}
             </button>
           </form>
         </section>

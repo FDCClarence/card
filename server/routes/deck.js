@@ -10,7 +10,7 @@ const MAX_COPIES = 2
 
 router.get('/', requireAuth, async (req, res) => {
   const rows = await query(
-    'SELECT name, card_ids FROM decks WHERE user_id = ? ORDER BY id DESC LIMIT 1',
+    'SELECT name, card_ids FROM decks WHERE user_id = ? AND is_active = 1 ORDER BY id DESC LIMIT 1',
     [Number(req.userId)],
   )
   const row = rows[0]
@@ -47,11 +47,15 @@ router.post('/save', requireAuth, async (req, res) => {
   }
 
   const deck = { name: String(name).trim(), cardIds }
-  await query('INSERT INTO decks (user_id, name, card_ids, created_at) VALUES (?, ?, ?, CURDATE())', [
+  await query('UPDATE decks SET is_active = 0 WHERE user_id = ?', [Number(req.userId)])
+  await query(
+    'INSERT INTO decks (user_id, name, card_ids, is_active, created_at) VALUES (?, ?, ?, 1, CURDATE())',
+    [
     Number(req.userId),
     deck.name,
     JSON.stringify(deck.cardIds),
-  ])
+    ],
+  )
 
   return res.json({ deck })
 })

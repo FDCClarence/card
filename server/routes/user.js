@@ -10,8 +10,9 @@ const SALT_ROUNDS = 10
 
 router.patch('/username', requireAuth, async (req, res) => {
   const { username } = req.body ?? {}
-  if (!username || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(username).trim())) {
-    return res.status(400).json({ error: 'Please provide a valid email.' })
+  const nextUsername = String(username ?? '').trim()
+  if (nextUsername.length < 2) {
+    return res.status(400).json({ error: 'Username must be at least 2 characters.' })
   }
 
   const user = await findUserById(req.userId)
@@ -19,19 +20,21 @@ router.patch('/username', requireAuth, async (req, res) => {
     return res.status(404).json({ error: 'User not found.' })
   }
 
-  const nextEmail = String(username).trim().toLowerCase()
-  const duplicate = await query('SELECT id FROM users WHERE email = ? AND id <> ? LIMIT 1', [nextEmail, user.id])
+  const duplicate = await query('SELECT id FROM users WHERE username = ? AND id <> ? LIMIT 1', [
+    nextUsername,
+    user.id,
+  ])
   if (duplicate.length > 0) {
-    return res.status(409).json({ error: 'Email is already in use.' })
+    return res.status(409).json({ error: 'Username is already in use.' })
   }
 
-  await query('UPDATE users SET email = ?, updated_at = CURDATE() WHERE id = ?', [nextEmail, user.id])
+  await query('UPDATE users SET username = ?, updated_at = CURDATE() WHERE id = ?', [nextUsername, user.id])
 
   return res.json({
     user: {
       id: user.id,
-      username: nextEmail,
-      email: nextEmail,
+      username: nextUsername,
+      email: user.email,
     },
   })
 })

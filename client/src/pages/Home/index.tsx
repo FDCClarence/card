@@ -16,6 +16,12 @@ const ACTIONS: ActionCard[] = [
 
 export default function HomePage() {
   const navigate = useNavigate()
+  const handleLogout = () => {
+    localStorage.removeItem('authToken')
+    localStorage.removeItem('authUser')
+    navigate('/login')
+  }
+
   const username = useMemo(() => {
     const raw = localStorage.getItem('authUser')
     if (!raw) return 'Player'
@@ -29,10 +35,21 @@ export default function HomePage() {
 
   return (
     <main className="flex min-h-screen flex-col bg-[var(--color-bg)] px-6 py-8 text-[var(--color-text)]">
-      <header className="flex justify-end">
-        <div className="rounded-full border border-white/10 bg-[var(--color-surface)] px-4 py-2 text-sm text-[var(--color-muted)]">
+      <header className="flex justify-end gap-3">
+        <div
+          className="border border-white/10 bg-[var(--color-surface)] px-4 py-2 text-xs text-[var(--color-muted)]"
+          style={{ fontFamily: 'var(--font-display)', borderRadius: '4px' }}
+        >
           {username}
         </div>
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="border border-red-400/50 bg-red-500/20 px-4 py-2 text-xs text-red-300 transition hover:bg-red-500/30"
+          style={{ fontFamily: 'var(--font-display)', borderRadius: '4px' }}
+        >
+          Log Out
+        </button>
       </header>
 
       <section className="flex flex-1 items-center justify-center">
@@ -42,12 +59,23 @@ export default function HomePage() {
               key={action.label}
               type="button"
               onClick={() => navigate(action.to)}
-              className="group flex h-56 flex-col items-center justify-center gap-4 rounded-3xl border border-white/10 bg-[var(--color-surface)] shadow-[0_12px_36px_rgba(0,0,0,0.4)] transition duration-300 hover:-translate-y-2"
-              style={{ boxShadow: `0 12px 36px rgba(0,0,0,0.4), 0 0 0 1px ${action.color}44 inset` }}
+              className="group flex h-56 flex-col items-center justify-center gap-5 border border-white/10 bg-[var(--color-surface)] shadow-[0_8px_28px_rgba(0,0,0,0.5)]"
+              style={{
+                borderRadius: '8px',
+                boxShadow: `0 8px 28px rgba(0,0,0,0.5), 0 0 0 1px ${action.color}44 inset, 4px 4px 0 rgba(0,0,0,0.3)`,
+              }}
+              onMouseEnter={(e) => {
+                ;(e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-4px)'
+                ;(e.currentTarget as HTMLButtonElement).style.boxShadow = `0 12px 32px rgba(0,0,0,0.6), 0 0 0 2px ${action.color}88 inset, 4px 4px 0 rgba(0,0,0,0.3)`
+              }}
+              onMouseLeave={(e) => {
+                ;(e.currentTarget as HTMLButtonElement).style.transform = ''
+                ;(e.currentTarget as HTMLButtonElement).style.boxShadow = `0 8px 28px rgba(0,0,0,0.5), 0 0 0 1px ${action.color}44 inset, 4px 4px 0 rgba(0,0,0,0.3)`
+              }}
             >
               <span className="text-6xl leading-none">{action.icon}</span>
               <span
-                className="text-3xl leading-none"
+                className="text-sm leading-none"
                 style={{
                   color: action.color,
                   fontFamily: 'var(--font-display)',

@@ -7,35 +7,35 @@
   /* sizing — overridden per size variant */
   --card-w: 180px;
   --card-h: 252px;
-  --name-font: 0.85rem;
+  --name-font: 0.6rem;
   --desc-font: 0.65rem;
-  --badge-font: 0.7rem;
-  --badge-pad: 3px 7px;
+  --badge-font: 0.55rem;
+  --badge-pad: 4px 8px;
   --badge-gap: 4px;
-  --radius: 16px;
+  --radius: 10px;
 }
 
 /* ─── Size variants ────────────────────────────────────────────────────────── */
 .card.sm {
   --card-w: 120px;
   --card-h: 168px;
-  --name-font: 0.65rem;
+  --name-font: 0.42rem;
   --desc-font: 0.52rem;
-  --badge-font: 0.55rem;
-  --badge-pad: 2px 5px;
+  --badge-font: 0.38rem;
+  --badge-pad: 3px 5px;
   --badge-gap: 3px;
-  --radius: 12px;
+  --radius: 8px;
 }
 
 .card.lg {
   --card-w: 240px;
   --card-h: 336px;
-  --name-font: 1.05rem;
+  --name-font: 0.72rem;
   --desc-font: 0.75rem;
-  --badge-font: 0.82rem;
-  --badge-pad: 4px 10px;
+  --badge-font: 0.62rem;
+  --badge-pad: 5px 10px;
   --badge-gap: 6px;
-  --radius: 20px;
+  --radius: 12px;
 }
 
 /* ─── Rarity color overrides ───────────────────────────────────────────────── */
@@ -70,40 +70,41 @@
   height: var(--card-h);
   border-radius: var(--radius);
   border: 2px solid var(--rarity-border);
-  background: var(--color-card, #0f3460);
+  /* pixel dot texture layered over card colour */
+  background:
+    radial-gradient(circle, #00000012 1px, transparent 1px),
+    var(--color-card, #1e3028);
+  background-size: 4px 4px, auto;
   box-shadow:
     0 0 12px var(--rarity-glow),
     0 8px 24px rgba(0, 0, 0, 0.55),
-    inset 0 1px 0 rgba(255, 255, 255, 0.07);
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   cursor: pointer;
   user-select: none;
-  transition:
-    transform 300ms ease,
-    box-shadow 300ms ease,
-    filter 300ms ease,
-    opacity 300ms ease;
+  /* instant state changes — no easing */
+  transition: none;
   flex-shrink: 0;
   transform: translateZ(0);
-  will-change: transform, box-shadow;
 }
 
 /* ─── Hover ────────────────────────────────────────────────────────────────── */
 .card:not(.disabled):hover {
-  transform: translateY(-8px) scale(1.03);
+  transform: translateY(-6px) scale(1.02);
   box-shadow:
-    0 0 28px var(--rarity-glow-hover),
-    0 20px 40px rgba(0, 0, 0, 0.7),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    0 0 0 1px var(--rarity-border),
+    0 0 24px var(--rarity-glow-hover),
+    0 16px 36px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
   z-index: 10;
 }
 
-/* Hover should not fight the flip-in animation */
+/* No need for the reduced-motion override — transition: none already covers it */
 @media (prefers-reduced-motion: no-preference) {
   .card.flipIn:not(.disabled):hover {
-    transform: translateY(-8px) scale(1.03);
+    transform: translateY(-6px) scale(1.02);
   }
 }
 
@@ -126,8 +127,8 @@
   }
   50% {
     box-shadow:
-      0 0 0 6px rgba(245, 166, 35, 0.25),
-      0 0 48px rgba(245, 166, 35, 0.65),
+      0 0 0 5px rgba(245, 166, 35, 0.25),
+      0 0 44px rgba(245, 166, 35, 0.65),
       0 16px 40px rgba(0, 0, 0, 0.65);
   }
 }
@@ -147,14 +148,11 @@
 }
 
 /* ─── Flip-in on mount ─────────────────────────────────────────────────────── */
-
-/* cardFlipIn keyframe is global, defined in animations.css */
 @media (prefers-reduced-motion: no-preference) {
   .card.flipIn {
     animation: cardFlipIn 360ms cubic-bezier(0.34, 1.1, 0.64, 1) both;
   }
 
-  /* Legendary: flip then border glow (delay matches flip duration) */
   .card.flipIn.rarity-legendary {
     animation:
       cardFlipIn 360ms cubic-bezier(0.34, 1.1, 0.64, 1) both,
@@ -162,7 +160,6 @@
   }
 }
 
-/* Legendary glow without the flip (reduced motion or after class removal) */
 @media (prefers-reduced-motion: no-preference) {
   .card.rarity-legendary:not(.flipIn) {
     animation: legendaryBorderGlow 2.5s ease-in-out infinite;
@@ -171,12 +168,8 @@
 
 /* ─── Legendary body shimmer ───────────────────────────────────────────────── */
 @keyframes shimmer {
-  0% {
-    background-position: 200% 0%;
-  }
-  100% {
-    background-position: -200% 0%;
-  }
+  0% { background-position: 200% 0%; }
+  100% { background-position: -200% 0%; }
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -188,7 +181,7 @@
     background: linear-gradient(
       115deg,
       transparent 30%,
-      rgba(245, 158, 11, 0.15) 50%,
+      rgba(245, 158, 11, 0.13) 50%,
       transparent 70%
     );
     background-size: 200% 200%;
@@ -198,26 +191,34 @@
   }
 }
 
-/* ─── "NEW" badge ──────────────────────────────────────────────────────────── */
+/* ─── Inner frame — crisp pixel border inset ───────────────────────────────── */
+.card::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: calc(var(--radius) - 3px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  pointer-events: none;
+  z-index: 0;
+}
 
-/* newBadgeLife keyframe is global, defined in animations.css */
+/* ─── "NEW" badge ──────────────────────────────────────────────────────────── */
 .newBadge {
   position: absolute;
   top: 7px;
   left: 7px;
   z-index: 10;
-  font-family: var(--font-body, 'Nunito', sans-serif);
-  font-size: calc(var(--badge-font) * 0.82);
+  font-family: var(--font-display, 'Press Start 2P', monospace);
+  font-size: calc(var(--badge-font) * 0.75);
   font-weight: 900;
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
   text-transform: uppercase;
-  padding: 2px 6px;
-  border-radius: 99px;
-  background: var(--color-accent, #e94560);
+  padding: 2px 5px;
+  border-radius: 2px;
+  background: var(--color-accent, #c0392b);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
   pointer-events: none;
-  /* keeps element at opacity:0 after animation ends */
   animation-fill-mode: forwards;
 }
 
@@ -239,7 +240,7 @@
   width: 100%;
   flex: 0 0 55%;
   overflow: hidden;
-  border-radius: var(--radius) var(--radius) 0 0;
+  border-radius: calc(var(--radius) - 2px) calc(var(--radius) - 2px) 0 0;
 }
 
 .image {
@@ -248,11 +249,13 @@
   object-fit: cover;
   object-position: center top;
   display: block;
-  transition: transform 300ms ease;
+  /* instant image zoom — retro feel */
+  transition: none;
+  image-rendering: pixelated;
 }
 
 .card:not(.disabled):hover .image {
-  transform: scale(1.06);
+  transform: scale(1.05);
 }
 
 /* Fallback gradient shown when img fails */
@@ -261,9 +264,9 @@
   height: 100%;
   background: linear-gradient(
     135deg,
-    color-mix(in srgb, var(--rarity-border) 30%, #0f3460) 0%,
-    #0f3460 60%,
-    #1a1a2e 100%
+    color-mix(in srgb, var(--rarity-border) 30%, #1e3028) 0%,
+    #1e3028 60%,
+    #1a1612 100%
   );
   display: flex;
   align-items: center;
@@ -279,7 +282,7 @@
   left: 0;
   right: 0;
   height: 40%;
-  background: linear-gradient(to bottom, transparent, rgba(10, 15, 30, 0.82));
+  background: linear-gradient(to bottom, transparent, rgba(10, 15, 20, 0.88));
   pointer-events: none;
 }
 
@@ -287,23 +290,23 @@
 .namebar {
   position: relative;
   z-index: 2;
-  margin-top: -12px;
-  padding: 4px 10px 5px;
-  background: rgba(10, 15, 30, 0.82);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  margin-top: -10px;
+  padding: 5px 8px 5px;
+  background: rgba(18, 24, 20, 0.9);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  /* crisp divider */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .name {
-  font-family: var(--font-display, 'Fredoka One', cursive);
+  font-family: var(--font-display, 'Press Start 2P', monospace);
   font-size: var(--name-font);
-  color: var(--color-text, #eaeaea);
-  line-height: 1.2;
+  color: var(--color-text, #f2e4c8);
+  line-height: 1.4;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
 }
 
 /* ─── Stats row ────────────────────────────────────────────────────────────── */
@@ -317,7 +320,7 @@
 
 /* ─── Description / effects ────────────────────────────────────────────────── */
 .details {
-  padding: 0 9px 6px;
+  padding: 0 8px 6px;
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -329,7 +332,7 @@
 .description {
   font-family: var(--font-body, 'Nunito', sans-serif);
   font-size: var(--desc-font);
-  color: var(--color-muted, #8892a4);
+  color: var(--color-muted, #9d8b76);
   font-style: italic;
   line-height: 1.35;
   overflow: hidden;
@@ -345,14 +348,15 @@
   margin-top: 2px;
 }
 
+/* Square pills — pixel-adjacent look */
 .effectPill {
   font-family: var(--font-body, 'Nunito', sans-serif);
   font-size: calc(var(--desc-font) * 0.9);
-  background: rgba(255, 255, 255, 0.07);
+  background: rgba(255, 255, 255, 0.06);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 99px;
-  padding: 1px 6px;
-  color: var(--color-muted, #8892a4);
+  border-radius: 2px;
+  padding: 1px 5px;
+  color: var(--color-muted, #9d8b76);
   white-space: nowrap;
 }
 
@@ -360,18 +364,19 @@
 .rarityBadge {
   position: absolute;
   bottom: 7px;
-  right: 8px;
-  font-family: var(--font-body, 'Nunito', sans-serif);
-  font-size: calc(var(--badge-font) * 0.88);
+  right: 7px;
+  font-family: var(--font-display, 'Press Start 2P', monospace);
+  font-size: calc(var(--badge-font) * 0.75);
   font-weight: 700;
-  letter-spacing: 0.05em;
+  letter-spacing: 0;
   text-transform: uppercase;
-  padding: 2px 7px;
-  border-radius: 99px;
+  padding: 2px 5px;
+  /* square — pixel aesthetic */
+  border-radius: 2px;
   background: var(--rarity-border);
   color: #0f1117;
   line-height: 1.3;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.4);
   z-index: 3;
 }
 
@@ -381,33 +386,35 @@
   align-items: center;
   gap: 3px;
   padding: var(--badge-pad);
-  border-radius: 99px;
-  font-family: var(--font-body, 'Nunito', sans-serif);
+  /* blocky — no pill shape */
+  border-radius: 2px;
+  font-family: var(--font-display, 'Press Start 2P', monospace);
   font-size: var(--badge-font);
-  font-weight: 800;
+  font-weight: 400;
   line-height: 1;
   color: #fff;
   box-shadow:
-    0 2px 6px rgba(0, 0, 0, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    2px 2px 0 rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
   white-space: nowrap;
-  letter-spacing: 0.01em;
+  letter-spacing: 0;
 }
 
 .badge.health {
-  background: #ef4444;
+  background: #c0392b;
 }
 .badge.attack {
-  background: #f97316;
+  background: #d35400;
 }
 .badge.defense {
-  background: #3b82f6;
+  background: #2471a3;
 }
 .badge.rollModifier {
-  background: #8b5cf6;
+  background: #6c3483;
 }
 
 .badgeIcon {
   font-size: 0.85em;
   line-height: 1;
+  font-style: normal;
 }

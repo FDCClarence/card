@@ -42,11 +42,11 @@ function DeckEntry({ card, count, isRemoving, onRemove }: DeckEntryProps) {
       style={{ overflow: 'hidden' }}
       className={`deck-card-pop${isRemoving ? ' deck-card-remove' : ''}`}
     >
-      <div className="flex items-center gap-3 rounded-xl border border-white/8 bg-[var(--color-card)]/60 px-3 py-2 transition hover:bg-[var(--color-card)]/90">
+      <div className="flex items-center gap-3 border border-white/8 bg-[var(--color-card)]/60 px-3 py-2 hover:bg-[var(--color-card)]/90" style={{ borderRadius: '4px' }}>
         {/* Tiny card thumbnail */}
         <div
-          className="h-10 w-8 shrink-0 overflow-hidden rounded-lg border"
-          style={{ borderColor: `${color}88` }}
+          className="h-10 w-8 shrink-0 overflow-hidden border"
+          style={{ borderRadius: '3px', borderColor: `${color}88` }}
         >
           {imgFailed ? (
             <div
@@ -78,8 +78,8 @@ function DeckEntry({ card, count, isRemoving, onRemove }: DeckEntryProps) {
         {/* Count badge — key={count} remounts element → replays pop animation */}
         <span
           key={count}
-          className="deck-card-pop shrink-0 rounded-full px-2 py-0.5 text-xs font-black text-[#0f1117]"
-          style={{ background: color }}
+          className="deck-card-pop shrink-0 px-2 py-0.5 text-xs font-black text-[#0f1117]"
+          style={{ borderRadius: '2px', boxShadow: '1px 1px 0 rgba(0,0,0,0.3)', background: color }}
           aria-label={`${count} cop${count === 1 ? 'y' : 'ies'}`}
         >
           ×{count}
@@ -89,7 +89,8 @@ function DeckEntry({ card, count, isRemoving, onRemove }: DeckEntryProps) {
         <button
           type="button"
           onClick={() => onRemove(card.id)}
-          className="shrink-0 cursor-pointer rounded-lg px-2 py-1 text-[var(--color-muted)] transition hover:bg-red-500/20 hover:text-red-400 active:scale-90"
+          className="shrink-0 cursor-pointer px-2 py-1 text-[var(--color-muted)] hover:bg-red-500/20 hover:text-red-400"
+          style={{ borderRadius: '3px' }}
           aria-label={`Remove one ${card.name}`}
         >
           −
@@ -232,7 +233,8 @@ export function DeckPanel({
           type="button"
           onClick={onSave}
           disabled={!isValid || savingNow}
-          className="w-full cursor-pointer rounded-xl bg-[var(--color-accent)] py-2.5 font-bold text-white transition hover:brightness-110 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+          className="w-full cursor-pointer bg-[var(--color-accent)] py-2.5 font-bold text-white disabled:cursor-not-allowed disabled:opacity-50"
+          style={{ borderRadius: '4px', boxShadow: '3px 3px 0 rgba(0,0,0,0.4)', fontFamily: 'var(--font-display)', fontSize: '0.6rem', letterSpacing: 0 }}
         >
           {savingNow ? 'Saving…' : 'Save Deck'}
         </button>
@@ -241,11 +243,16 @@ export function DeckPanel({
           type="button"
           onClick={handleClearClick}
           disabled={isEmpty}
-          className="w-full cursor-pointer rounded-xl border py-2 text-sm font-semibold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40"
+          className="w-full cursor-pointer border py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40"
           style={
             confirmClear
-              ? { borderColor: '#ef4444', color: '#ef4444', background: 'rgba(239,68,68,0.1)' }
-              : { borderColor: 'rgba(255,255,255,0.15)', color: 'var(--color-muted)' }
+              ? {
+                  borderRadius: '4px',
+                  borderColor: '#ef4444',
+                  color: '#ef4444',
+                  background: 'rgba(239,68,68,0.1)',
+                }
+              : { borderRadius: '4px', borderColor: 'rgba(255,255,255,0.15)', color: 'var(--color-muted)' }
           }
           onBlur={() => setConfirmClear(false)}
         >

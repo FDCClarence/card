@@ -1,11 +1,14 @@
 :root {
-  --color-bg: #1a1a2e;
-  --color-surface: #16213e;
-  --color-card: #0f3460;
-  --color-accent: #e94560;
-  --color-gold: #f5a623;
-  --color-text: #eaeaea;
-  --color-muted: #8892a4;
-  --font-display: 'Fredoka One', cursive;
+  /* ── Warm earthy palette (Stardew / SAP vibe) ── */
+  --color-bg: #1a1612;
+  --color-surface: #25201a;
+  --color-card: #1e3028;
+  --color-accent: #c0392b;
+  --color-gold: #d4960a;
+  --color-text: #f2e4c8;
+  --color-muted: #9d8b76;
+
+  /* ── Fonts ── */
+  --font-display: 'Press Start 2P', monospace;
   --font-body: 'Nunito', sans-serif;
 }

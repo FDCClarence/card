@@ -66,7 +66,8 @@ export function CollectionPanel({ cards, slots, totalCards, onAdd }: CollectionP
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Search cards…"
-          className="w-full rounded-xl border border-white/15 bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)] outline-none transition placeholder:text-[var(--color-muted)] focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/40"
+          className="w-full border border-white/15 bg-[var(--color-surface)] px-3 py-2 text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-muted)] focus:border-[var(--color-accent)] focus:ring-0"
+          style={{ borderRadius: '4px' }}
         />
 
         {/* Rarity filter chips */}
@@ -76,14 +77,15 @@ export function CollectionPanel({ cards, slots, totalCards, onAdd }: CollectionP
               key={r.value}
               type="button"
               onClick={() => setRarityFilter(r.value)}
-              className="rounded-full px-3 py-1 text-xs font-semibold transition"
+              className="px-3 py-1 text-xs font-semibold"
               style={
                 rarityFilter === r.value
-                  ? { background: r.color, color: '#0f1117' }
+                  ? { background: r.color, color: '#0f1117', borderRadius: '3px', boxShadow: '2px 2px 0 rgba(0,0,0,0.35)' }
                   : {
                       background: 'rgba(255,255,255,0.06)',
                       color: r.color,
                       border: `1px solid ${r.color}66`,
+                      borderRadius: '3px',
                     }
               }
             >
@@ -99,14 +101,15 @@ export function CollectionPanel({ cards, slots, totalCards, onAdd }: CollectionP
                 key={s.value}
                 type="button"
                 onClick={() => setSort(s.value)}
-                className="rounded-full px-3 py-1 text-xs font-semibold transition"
+                className="px-3 py-1 text-xs font-semibold"
                 style={
                   sort === s.value
-                    ? { background: 'var(--color-accent)', color: '#fff' }
+                    ? { background: 'var(--color-accent)', color: '#fff', borderRadius: '3px', boxShadow: '2px 2px 0 rgba(0,0,0,0.35)' }
                     : {
                         background: 'rgba(255,255,255,0.06)',
                         color: 'var(--color-muted)',
                         border: '1px solid rgba(255,255,255,0.12)',
+                        borderRadius: '3px',
                       }
                 }
               >
@@ -143,8 +146,12 @@ export function CollectionPanel({ cards, slots, totalCards, onAdd }: CollectionP
                 {/* Count pip — shown whenever at least one copy is in the deck */}
                 {count > 0 && (
                   <span
-                    className="pointer-events-none absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-black text-white shadow-md"
-                    style={{ background: maxed ? '#ef4444' : '#22c55e' }}
+                    className="pointer-events-none absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center text-[10px] font-black text-white"
+                    style={{
+                      borderRadius: '2px',
+                      boxShadow: '1px 1px 0 rgba(0,0,0,0.4)',
+                      background: maxed ? '#ef4444' : '#22c55e',
+                    }}
                     aria-label={`${count} in deck`}
                   >
                     {count}
@@ -153,10 +160,11 @@ export function CollectionPanel({ cards, slots, totalCards, onAdd }: CollectionP
                 {/* MAX overlay */}
                 {maxed && (
                   <div
-                    className="pointer-events-none absolute inset-0 flex items-end justify-center rounded-xl pb-2"
+                    className="pointer-events-none absolute inset-0 flex items-end justify-center pb-2"
+                    style={{ borderRadius: '6px' }}
                     aria-hidden="true"
                   >
-                    <span className="rounded-full bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-red-400">
+                    <span className="bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-red-400" style={{ borderRadius: '2px' }}>
                       MAX ×2
                     </span>
                   </div>

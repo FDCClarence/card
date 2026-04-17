@@ -18,6 +18,10 @@ function isValidEmail(email: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
+const inputClass =
+  'w-full border border-white/15 bg-[var(--color-card)] px-3 py-2.5 text-sm text-[var(--color-text)] outline-none focus:border-[var(--color-accent)] focus:ring-0'
+const labelClass = 'mb-1 block text-[10px] text-[var(--color-muted)] uppercase tracking-widest'
+
 export function RegisterPage() {
   const navigate = useNavigate()
   const [username, setUsername] = useState('')
@@ -92,10 +96,7 @@ export function RegisterPage() {
     <AuthLayout title="Create Account" subtitle="Start your journey in the CardGame tavern.">
       <form className="space-y-4" onSubmit={handleSubmit} noValidate>
         <div>
-          <label
-            className="mb-1 block text-sm font-semibold text-[var(--color-text)]"
-            htmlFor="username"
-          >
+          <label className={labelClass} htmlFor="username">
             Username
           </label>
           <input
@@ -104,13 +105,14 @@ export function RegisterPage() {
             autoComplete="username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full rounded-xl border border-white/15 bg-[var(--color-card)] px-3 py-2.5 text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/50"
+            className={inputClass}
+            style={{ borderRadius: '4px' }}
           />
           {errors.username ? <p className="mt-1 text-xs text-red-400">{errors.username}</p> : null}
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-semibold text-[var(--color-text)]" htmlFor="email">
+          <label className={labelClass} htmlFor="email">
             Email
           </label>
           <input
@@ -119,16 +121,14 @@ export function RegisterPage() {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-xl border border-white/15 bg-[var(--color-card)] px-3 py-2.5 text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/50"
+            className={inputClass}
+            style={{ borderRadius: '4px' }}
           />
           {errors.email ? <p className="mt-1 text-xs text-red-400">{errors.email}</p> : null}
         </div>
 
         <div>
-          <label
-            className="mb-1 block text-sm font-semibold text-[var(--color-text)]"
-            htmlFor="password"
-          >
+          <label className={labelClass} htmlFor="password">
             Password
           </label>
           <input
@@ -137,16 +137,14 @@ export function RegisterPage() {
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full rounded-xl border border-white/15 bg-[var(--color-card)] px-3 py-2.5 text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/50"
+            className={inputClass}
+            style={{ borderRadius: '4px' }}
           />
           {errors.password ? <p className="mt-1 text-xs text-red-400">{errors.password}</p> : null}
         </div>
 
         <div>
-          <label
-            className="mb-1 block text-sm font-semibold text-[var(--color-text)]"
-            htmlFor="confirm-password"
-          >
+          <label className={labelClass} htmlFor="confirm-password">
             Confirm password
           </label>
           <input
@@ -155,7 +153,8 @@ export function RegisterPage() {
             autoComplete="new-password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="w-full rounded-xl border border-white/15 bg-[var(--color-card)] px-3 py-2.5 text-[var(--color-text)] outline-none transition focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/50"
+            className={inputClass}
+            style={{ borderRadius: '4px' }}
           />
           {errors.confirmPassword ? (
             <p className="mt-1 text-xs text-red-400">{errors.confirmPassword}</p>
@@ -167,14 +166,20 @@ export function RegisterPage() {
         <button
           type="submit"
           disabled={!canSubmit}
-          className="mt-2 w-full rounded-xl bg-[var(--color-accent)] px-4 py-2.5 font-bold text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+          className="mt-2 w-full bg-[var(--color-accent)] px-4 py-3 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-70"
+          style={{
+            fontFamily: 'var(--font-display)',
+            borderRadius: '4px',
+            boxShadow: '3px 3px 0 rgba(0,0,0,0.4)',
+            letterSpacing: 0,
+          }}
         >
           {submitting ? 'Creating account...' : 'Create Account'}
         </button>
 
-        <p className="pt-1 text-center text-sm text-[var(--color-muted)]">
+        <p className="pt-1 text-center text-xs text-[var(--color-muted)]">
           Already have an account?{' '}
-          <Link className="font-semibold text-[var(--color-accent)] hover:brightness-110" to="/login">
+          <Link className="font-semibold text-[var(--color-accent)]" to="/login">
             Login
           </Link>
         </p>
