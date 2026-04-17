@@ -131,7 +131,8 @@ export function CollectionPanel({ cards, slots, totalCards, onAdd }: CollectionP
         <div className="flex flex-wrap gap-3">
           {filtered.map((card) => {
             const count = slots[card.id] ?? 0
-            const maxed = count >= MAX_COPIES
+            const maxCopies = card.max_copies ?? MAX_COPIES
+            const maxed = count >= maxCopies
 
             return (
               <div key={card.id} className="relative">
@@ -165,7 +166,7 @@ export function CollectionPanel({ cards, slots, totalCards, onAdd }: CollectionP
                     aria-hidden="true"
                   >
                     <span className="bg-black/70 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-red-400" style={{ borderRadius: '2px' }}>
-                      MAX ×2
+                      MAX ×{maxCopies}
                     </span>
                   </div>
                 )}

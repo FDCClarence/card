@@ -1,4 +1,7 @@
 import express from 'express'
+import { readFileSync } from 'node:fs'
+import { dirname, join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { query } from '../src/db.js'
 import { requireAuth } from './middleware.js'
@@ -7,6 +10,12 @@ const router = express.Router()
 
 const MAX_TOTAL = 20
 const MAX_COPIES = 2
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const CARDS_PATH = join(__dirname, '../../shared/cards/registry/cards.json')
+const allCards = JSON.parse(readFileSync(CARDS_PATH, 'utf-8'))
+const maxCopiesByCardId = new Map(
+  allCards.map((card) => [card.id, Number.isInteger(card.max_copies) && card.max_copies > 0 ? card.max_copies : MAX_COPIES]),
+)
 
 router.get('/', requireAuth, async (req, res) => {
   const rows = await query(
@@ -41,8 +50,9 @@ router.post('/save', requireAuth, async (req, res) => {
   const copyCounts = {}
   for (const id of cardIds) {
     copyCounts[id] = (copyCounts[id] ?? 0) + 1
-    if (copyCounts[id] > MAX_COPIES) {
-      return res.status(400).json({ error: `Max ${MAX_COPIES} copies of any card.` })
+    const maxCopiesForCard = maxCopiesByCardId.get(id) ?? MAX_COPIES
+    if (copyCounts[id] > maxCopiesForCard) {
+      return res.status(400).json({ error: `Max ${maxCopiesForCard} copies for card "${id}".` })
     }
   }
 

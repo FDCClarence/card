@@ -26,8 +26,8 @@ function assertString(value: unknown, path: string): string {
 }
 
 function assertPositiveInt(value: unknown, path: string): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    throw new Error(`Registry validation: "${path}" must be a number, got ${JSON.stringify(value)}`)
+  if (typeof value !== 'number' || !Number.isFinite(value) || !Number.isInteger(value) || value < 1) {
+    throw new Error(`Registry validation: "${path}" must be a positive integer, got ${JSON.stringify(value)}`)
   }
   return value
 }
@@ -82,8 +82,12 @@ export function loadCards(): CardDefinition[] {
 
     const effects = assertStringArray(r['effects'], `${prefix}.effects`)
     const tags = assertStringArray(r['tags'], `${prefix}.tags`)
+    const max_copies =
+      r['max_copies'] === undefined
+        ? undefined
+        : assertPositiveInt(r['max_copies'], `${prefix}.max_copies`)
 
-    return { id, name, image, rarity: r['rarity'] as Rarity, description, stats, effects, tags }
+    return { id, name, image, rarity: r['rarity'] as Rarity, description, stats, effects, tags, max_copies }
   })
 }
 

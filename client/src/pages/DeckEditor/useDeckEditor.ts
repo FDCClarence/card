@@ -10,7 +10,7 @@ export const MAX_COPIES = 2
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-/** cardId → copy count (always 1 or 2) */
+/** cardId → copy count */
 export type DeckSlots = Record<string, number>
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
@@ -46,6 +46,10 @@ function slotsFromCardIds(cardIds: string[]): DeckSlots {
   return slots
 }
 
+function getMaxCopiesForCard(allCards: CardDefinition[], cardId: string): number {
+  return allCards.find((card) => card.id === cardId)?.max_copies ?? MAX_COPIES
+}
+
 function reducer(state: State, action: Action): State {
   switch (action.type) {
     case 'CARDS_LOADED': {
@@ -62,7 +66,8 @@ function reducer(state: State, action: Action): State {
     case 'ADD_CARD': {
       const current = state.slots[action.cardId] ?? 0
       const total = Object.values(state.slots).reduce((s, n) => s + n, 0)
-      if (current >= MAX_COPIES || total >= MAX_TOTAL) return state
+      const maxCopiesForCard = getMaxCopiesForCard(state.allCards, action.cardId)
+      if (current >= maxCopiesForCard || total >= MAX_TOTAL) return state
       return { ...state, slots: { ...state.slots, [action.cardId]: current + 1 } }
     }
     case 'REMOVE_CARD': {

@@ -24,4 +24,5 @@ export interface CardDefinition {
   stats: CardStats
   effects: string[]
   tags: string[]
+  max_copies?: number
 }
